@@ -1,4 +1,15 @@
 # from __future__ import absolute_import, unicode_literals
+from django.conf import settings
+from service.workflow.workflow_transition_service import WorkflowTransitionService, workflow_transition_service_ins
+from service.common.common_service import CommonService, common_service_ins
+from service.ticket.ticket_base_service import TicketBaseService, ticket_base_service_ins
+from service.common.constant_service import constant_service_ins
+from service.account.account_base_service import account_base_service_ins
+from apps.workflow.models import Transition, State, WorkflowScript, Workflow, CustomNotice
+from apps.ticket.models import TicketRecord
+import requests
+import json
+import django
 import contextlib
 import os
 import sys
@@ -6,10 +17,9 @@ import traceback
 import logging
 from celery import Celery
 
-
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'settings.config')
-import django
+
 django.setup()
 
 app = Celery('loonflow')
@@ -22,16 +32,6 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
 
-import json
-import requests
-from apps.ticket.models import TicketRecord
-from apps.workflow.models import Transition, State, WorkflowScript, Workflow, CustomNotice
-from service.account.account_base_service import account_base_service_ins
-from service.common.constant_service import constant_service_ins
-from service.ticket.ticket_base_service import TicketBaseService, ticket_base_service_ins
-from service.common.common_service import CommonService, common_service_ins
-from service.workflow.workflow_transition_service import WorkflowTransitionService, workflow_transition_service_ins
-from django.conf import settings
 
 try:
     from StringIO import StringIO
@@ -39,7 +39,6 @@ except ImportError:
     from io import StringIO
 
 logger = logging.getLogger('django')
-
 
 
 @app.task(bind=True)
@@ -50,7 +49,7 @@ def debug_task(self):
 def test_task(a, b):
     print('a:', a)
     print('b:', b)
-    print(a+b)
+    print(a + b)
 
 
 @contextlib.contextmanager
@@ -80,7 +79,7 @@ def run_flow_task(ticket_id, script_id_str, state_id, action_from='loonrobot'):
     script_id = int(script_id_str)
     ticket_obj = TicketRecord.objects.filter(id=ticket_id, is_deleted=False).first()
     if ticket_obj.participant == script_id_str and ticket_obj.participant_type_id == constant_service_ins.PARTICIPANT_TYPE_ROBOT:
-        ## 校验脚本是否合法
+        # 校验脚本是否合法
         # 获取脚本名称
         script_obj = WorkflowScript.objects.filter(id=script_id, is_deleted=False, is_active=True).first()
         if not script_obj:
@@ -110,8 +109,10 @@ def run_flow_task(ticket_id, script_id_str, state_id, action_from='loonrobot'):
         transition_obj = Transition.objects.filter(source_state_id=state_id, is_deleted=False).first()
 
         new_ticket_flow_dict = dict(ticket_id=ticket_id, transition_id=transition_obj.id,
-                                    suggestion=script_result_msg, participant_type_id=constant_service_ins.PARTICIPANT_TYPE_ROBOT,
-                                    participant='脚本:(id:{}, name:{})'.format(script_obj.id, script_obj.name), state_id=state_id, creator='loonrobot')
+                                    suggestion=script_result_msg,
+                                    participant_type_id=constant_service_ins.PARTICIPANT_TYPE_ROBOT,
+                                    participant='脚本:(id:{}, name:{})'.format(script_obj.id, script_obj.name),
+                                    state_id=state_id, creator='loonrobot')
 
         ticket_base_service_ins.add_ticket_flow_log(new_ticket_flow_dict)
         if not script_result:
@@ -121,8 +122,8 @@ def run_flow_task(ticket_id, script_id_str, state_id, action_from='loonrobot'):
             return False, script_result_msg
         # 自动执行流转
         flag, msg = ticket_base_service_ins.handle_ticket(ticket_id, dict(username='loonrobot',
-                                                                    suggestion='脚本执行完成后自行流转',
-                                                                    transition_id=transition_obj.id), False, True)
+                                                                          suggestion='脚本执行完成后自行流转',
+                                                                          transition_id=transition_obj.id), False, True)
         if flag:
             logger.info('******脚本执行成功,工单基础信息更新完成, ticket_id:{}******'.format(ticket_id))
         return flag, msg
@@ -217,9 +218,9 @@ def send_ticket_notice(ticket_id):
                                               phone=participant_0.phone, email=participant_0.email))
 
     params = {'title_result': title_result, 'content_result': content_result,
-               'participant': ticket_obj.participant, 'participant_type_id': ticket_obj.participant_type_id,
-               'multi_all_person': ticket_obj.multi_all_person, 'ticket_value_info': ticket_value_info,
-               'last_flow_log': last_flow_log, 'participant_info_list': participant_info_list}
+              'participant': ticket_obj.participant, 'participant_type_id': ticket_obj.participant_type_id,
+              'multi_all_person': ticket_obj.multi_all_person, 'ticket_value_info': ticket_value_info,
+              'last_flow_log': last_flow_log, 'participant_info_list': participant_info_list}
     for notice_id in notice_id_list:
         notice_obj = CustomNotice.objects.filter(id=notice_id, is_deleted=0).first()
         if not notice_obj:
@@ -257,7 +258,7 @@ def flow_hook_task(ticket_id):
     if participant_type_id != constant_service_ins.PARTICIPANT_TYPE_HOOK:
         return False, ''
     hook_config = state_obj.participant
-    hook_config_dict= json.loads(hook_config)
+    hook_config_dict = json.loads(hook_config)
     hook_url = hook_config_dict.get('hook_url')
     hook_token = hook_config_dict.get('hook_token')
     wait = hook_config_dict.get('wait')
@@ -289,7 +290,7 @@ def flow_hook_task(ticket_id):
                                                          participant='hook', state_id=state_id,
                                                          ticket_data=all_ticket_data_json,
                                                          creator='loonrobot'
-                                                      ))
+                                                         ))
             return True, ''
         else:
             # 不等待hook目标回调，直接流转
@@ -304,7 +305,7 @@ def flow_hook_task(ticket_id):
                 return False, msg
 
     else:
-        ticket_base_service_ins.update_ticket_field_value(ticket_id,{'script_run_last_result': False})
+        ticket_base_service_ins.update_ticket_field_value(ticket_id, {'script_run_last_result': False})
 
         flag, all_field_value_result = ticket_base_service_ins.get_ticket_all_field_value_json(ticket_id)
 
@@ -312,4 +313,4 @@ def flow_hook_task(ticket_id):
         ticket_base_service_ins.add_ticket_flow_log(
             dict(ticket_id=ticket_id, transition_id=0, suggestion=result.get('msg'),
                  participant_type_id=constant_service_ins.PARTICIPANT_TYPE_HOOK,
-                 participant='hook', state_id=state_id, ticket_data=all_ticket_data_json, creator='loonrobot' ))
+                 participant='hook', state_id=state_id, ticket_data=all_ticket_data_json, creator='loonrobot'))

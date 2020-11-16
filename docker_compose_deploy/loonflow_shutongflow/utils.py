@@ -40,4 +40,3 @@ def use_aliyun_yum():
     print('重新加载yum')
     cmd('yum clean all')
     cmd('yum makecache')
-

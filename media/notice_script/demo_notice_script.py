@@ -16,12 +16,15 @@ def demo_notice_script_call():
         phone_list.append(participant_info['phone'])
         email_list.append(participant_info['email'])
     # 此处为了演示，同时发送了短信和邮件，实际使用建议分开在不同脚本中发送不同类型的消息
-    sms_result = requests.post('http://xxxxx.com/sendsms', {'phone': phone_list, 'context': content_result}) #发送短信，需要你的企业内有提供发送短信的接口，当然你也可以自己实现这个接口的逻辑
-    mail_result = requests.post('http://xxxxx.com/sendemail', {'phone': email_list, 'context': content_result,'title': title_result}) #发送邮件，需要你的企业内有提供发送邮件的接口，当然你也可以自己实现这个接口的逻辑
+    sms_result = requests.post('http://xxxxx.com/sendsms', {'phone': phone_list,
+                                                            'context': content_result})  # 发送短信，需要你的企业内有提供发送短信的接口，当然你也可以自己实现这个接口的逻辑
+    mail_result = requests.post('http://xxxxx.com/sendemail', {'phone': email_list, 'context': content_result,
+                                                               'title': title_result})  # 发送邮件，需要你的企业内有提供发送邮件的接口，当然你也可以自己实现这个接口的逻辑
     if sms_result.json().get('code') == 0 and mail_result.json().get('code') == 0:
         return True, ''
     else:
-        return False, 'send_sms_result:{}, send_email_result:{}'.format(sms_result.json().get('msg'), mail_result.json().get('msg'))
+        return False, 'send_sms_result:{}, send_email_result:{}'.format(sms_result.json().get('msg'),
+                                                                        mail_result.json().get('msg'))
 
 
 demo_notice_script_call()

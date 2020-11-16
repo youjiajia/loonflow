@@ -24,7 +24,6 @@ from apps.homepage_view import HomepageView
 
 admin.autodiscover()
 
-
 urlpatterns = [
     path('', include('apps.manage.urls')),
     path('admin/', admin.site.urls),

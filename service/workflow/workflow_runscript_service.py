@@ -15,7 +15,7 @@ class WorkflowRunScriptService(BaseService):
 
     @classmethod
     @auto_log
-    def get_run_script_list(cls, query_value: str, page: int, per_page: int)->tuple:
+    def get_run_script_list(cls, query_value: str, page: int, per_page: int) -> tuple:
         """
         获取执行脚本列表
         get run script list
@@ -50,7 +50,7 @@ class WorkflowRunScriptService(BaseService):
 
     @classmethod
     @auto_log
-    def add_run_script(cls, name: str, saved_name: str, description: str, is_active: int, creator: str)->tuple:
+    def add_run_script(cls, name: str, saved_name: str, description: str, is_active: int, creator: str) -> tuple:
         """
         新增工作流脚本
         add run script
@@ -68,7 +68,7 @@ class WorkflowRunScriptService(BaseService):
 
     @classmethod
     @auto_log
-    def edit_run_script(cls, run_script_id: int, name: str, saved_name: str, description: str, is_active: int)->tuple:
+    def edit_run_script(cls, run_script_id: int, name: str, saved_name: str, description: str, is_active: int) -> tuple:
         """
         更新工作流脚本
         edit run script
@@ -88,7 +88,7 @@ class WorkflowRunScriptService(BaseService):
 
     @classmethod
     @auto_log
-    def del_run_script(cls, run_script_id: int)->tuple:
+    def del_run_script(cls, run_script_id: int) -> tuple:
         """
         删除脚本
         delete run script
@@ -104,7 +104,7 @@ class WorkflowRunScriptService(BaseService):
 
     @classmethod
     @auto_log
-    def get_run_script_by_id(cls, run_script_id: int)->tuple:
+    def get_run_script_by_id(cls, run_script_id: int) -> tuple:
         """
         根据id获取执行脚本
         get script by id

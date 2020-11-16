@@ -22,7 +22,7 @@ class TestWorkflowView(LoonflowTest):
         """
         from apps.workflow.models import Workflow
         last_workflow_id = Workflow.objects.filter(is_deleted=0).order_by('-id').first().id
-        last_workflow_id=1
+        last_workflow_id = 1
         url = '/api/v1.0/workflows/{}/init_state'.format(last_workflow_id)
         response_content_dict = LoonflowApiCall().api_call('get', url)
         self.assertEqual(response_content_dict.get('code'), 0)

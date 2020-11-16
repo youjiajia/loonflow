@@ -47,11 +47,11 @@ class TicketListView(LoonBaseView):
         app_name = request.META.get('HTTP_APPNAME')
 
         # 未指定创建起止时间则取最近一年的记录
-        if not(create_start or create_end):
+        if not (create_start or create_end):
             import datetime
             now = datetime.datetime.now()
             now_str = str(now)[:19]
-            last_year_time = '%4d%s' % (now.year-1, now_str[4:])
+            last_year_time = '%4d%s' % (now.year - 1, now_str[4:])
             datetime.datetime.now() - datetime.timedelta(days=365)
             create_start = last_year_time
             create_end = now_str
@@ -65,7 +65,7 @@ class TicketListView(LoonBaseView):
             paginator_info = result.get('paginator_info')
             data = dict(value=result.get('ticket_result_restful_list'), per_page=paginator_info.get('per_page'),
                         page=paginator_info.get('page'), total=paginator_info.get('total'))
-            code, msg,  = 0, ''
+            code, msg, = 0, ''
         else:
             code, data, msg = -1, {}, result
         return api_response(code, msg, data)
@@ -83,14 +83,17 @@ class TicketListView(LoonBaseView):
         request_data_dict = json.loads(json_str)
 
         app_name = request.META.get('HTTP_APPNAME')
-        request_data_dict.update(dict(username=request.META.get('HTTP_USERNAME')))
+        request_data_dict.update(
+            dict(username=request.META.get('HTTP_USERNAME')))
 
         # 判断是否有创建某工单的权限
-        app_permission, msg = account_base_service_ins.app_workflow_permission_check(app_name, request_data_dict.get('workflow_id'))
+        app_permission, msg = account_base_service_ins.app_workflow_permission_check(app_name, request_data_dict.get(
+            'workflow_id'))
         if not app_permission:
             return api_response(-1, 'APP:{} have no permission to create this workflow ticket'.format(app_name), '')
 
-        flag, result = ticket_base_service_ins.new_ticket(request_data_dict, app_name)
+        flag, result = ticket_base_service_ins.new_ticket(
+            request_data_dict, app_name)
         if flag:
             code, data = 0, {'ticket_id': result.get('new_ticket_id')}
         else:
@@ -110,7 +113,8 @@ class TicketView(LoonBaseView):
         request_data = request.GET
         ticket_id = kwargs.get('ticket_id')
         app_name = request.META.get('HTTP_APPNAME')
-        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(app_name, ticket_id)
+        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(
+            app_name, ticket_id)
         if not app_permission_check:
             return api_response(-1, msg, '')
 
@@ -118,7 +122,8 @@ class TicketView(LoonBaseView):
         username = request.META.get('HTTP_USERNAME')
         if not username:
             return api_response(-1, '参数不全，请提供username', '')
-        flag, result = ticket_base_service_ins.get_ticket_detail(ticket_id, username)
+        flag, result = ticket_base_service_ins.get_ticket_detail(
+            ticket_id, username)
         if flag:
             code, data = 0, dict(value=result)
         else:
@@ -140,12 +145,15 @@ class TicketView(LoonBaseView):
         ticket_id = kwargs.get('ticket_id')
 
         app_name = request.META.get('HTTP_APPNAME')
-        request_data_dict.update(dict(username=request.META.get('HTTP_USERNAME')))
-        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(app_name, ticket_id)
+        request_data_dict.update(
+            dict(username=request.META.get('HTTP_USERNAME')))
+        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(
+            app_name, ticket_id)
         if not app_permission_check:
             return api_response(-1, msg, {})
 
-        result, msg = ticket_base_service_ins.handle_ticket(ticket_id, request_data_dict)
+        result, msg = ticket_base_service_ins.handle_ticket(
+            ticket_id, request_data_dict)
         if result or result is not False:
             code, data = 0, dict(value=result)
         else:
@@ -169,10 +177,12 @@ class TicketView(LoonBaseView):
             request_data_dict = json.loads(json_str)
             suggestion = request_data_dict.get('suggestion')
 
-        flag, result = ticket_base_service_ins.ticket_admin_permission_check(ticket_id, username)
+        flag, result = ticket_base_service_ins.ticket_admin_permission_check(
+            ticket_id, username)
         if flag is False:
             return api_response(-1, result, {})
-        flag, result = ticket_base_service_ins.delete_ticket(ticket_id, username, suggestion)
+        flag, result = ticket_base_service_ins.delete_ticket(
+            ticket_id, username, suggestion)
         if flag is False:
             return api_response(-1, result, {})
         else:
@@ -189,17 +199,20 @@ class TicketTransition(LoonBaseView):
         # username = request_data.get('username', '')
         username = request.META.get('HTTP_USERNAME')
         app_name = request.META.get('HTTP_APPNAME')
-        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(app_name, ticket_id)
+        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(
+            app_name, ticket_id)
         if not app_permission_check:
             return api_response(-1, msg, '')
 
         if not username:
             return api_response(-1, '参数不全，请提供username', '')
-        flag, result = ticket_base_service_ins.get_ticket_transition(ticket_id, username)
+        flag, result = ticket_base_service_ins.get_ticket_transition(
+            ticket_id, username)
         if flag is False:
             code, data, msg = -1, {}, result
         else:
-            code, data, msg = 0, dict(value=result.get('transition_dict_list')), ''
+            code, data, msg = 0, dict(
+                value=result.get('transition_dict_list')), ''
 
         return api_response(code, msg, data)
 
@@ -216,20 +229,22 @@ class TicketFlowlog(LoonBaseView):
         page = int(request_data.get('page', 1))
         ticket_data = int(request_data.get('ticket_data', 0))
         app_name = request.META.get('HTTP_APPNAME')
-        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(app_name, ticket_id)
+        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(
+            app_name, ticket_id)
         if not app_permission_check:
             return api_response(-1, msg, '')
 
         if not username:
             return api_response(-1, '参数不全，请提供username', '')
 
-        flag, result = ticket_base_service_ins.get_ticket_flow_log(ticket_id, username, per_page, page, ticket_data)
+        flag, result = ticket_base_service_ins.get_ticket_flow_log(
+            ticket_id, username, per_page, page, ticket_data)
 
         if flag is not False:
             paginator_info = result.get('paginator_info')
             data = dict(value=result.get('ticket_flow_log_restful_list'), per_page=paginator_info.get('per_page'),
                         page=paginator_info.get('page'), total=paginator_info.get('total'))
-            code, msg,  = 0, ''
+            code, msg, = 0, ''
         else:
             code, data = -1, ''
         return api_response(code, msg, data)
@@ -246,17 +261,20 @@ class TicketFlowStep(LoonBaseView):
         username = request.META.get('HTTP_USERNAME')
 
         app_name = request.META.get('HTTP_APPNAME')
-        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(app_name, ticket_id)
+        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(
+            app_name, ticket_id)
         if not app_permission_check:
             return api_response(-1, msg, '')
 
         if not username:
             return api_response(-1, '参数不全，请提供username', '')
 
-        flag, result = ticket_base_service_ins.get_ticket_flow_step(ticket_id, username)
+        flag, result = ticket_base_service_ins.get_ticket_flow_step(
+            ticket_id, username)
         if flag is not False:
-            data = dict(value=result.get('state_step_dict_list'), current_state_id=result.get('current_state_id'))
-            code, msg,  = 0, ''
+            data = dict(value=result.get('state_step_dict_list'),
+                        current_state_id=result.get('current_state_id'))
+            code, msg, = 0, ''
         else:
             code, data = -1, ''
         return api_response(code, msg, data)
@@ -290,21 +308,23 @@ class TicketState(LoonBaseView):
 
         app_name = request.META.get('HTTP_APPNAME')
         # 调用来源应用是否有此工单对应工作流的权限校验
-        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(app_name, ticket_id)
+        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(
+            app_name, ticket_id)
         if not app_permission_check:
             return api_response(-1, msg, '')
 
         # 强制修改工单状态需要对应工作流的管理员或者超级管理员
-        flag, result = ticket_base_service_ins.ticket_admin_permission_check(ticket_id, username)
+        flag, result = ticket_base_service_ins.ticket_admin_permission_check(
+            ticket_id, username)
         if flag is False:
             return api_response(-1, result, {})
 
-        flag, result = ticket_base_service_ins.update_ticket_state(ticket_id, state_id, username, suggestion)
+        flag, result = ticket_base_service_ins.update_ticket_state(
+            ticket_id, state_id, username, suggestion)
         if flag is False:
             return api_response(-1, result, {})
         else:
             return api_response(0, '', {})
-
 
 
 class TicketsStates(LoonBaseView):
@@ -323,7 +343,8 @@ class TicketsStates(LoonBaseView):
         ticket_id_list = ticket_ids.split(',')
         ticket_id_list = [int(ticket_id) for ticket_id in ticket_id_list]
 
-        flag, result = ticket_base_service_ins.get_tickets_states_by_ticket_id_list(ticket_id_list, username)
+        flag, result = ticket_base_service_ins.get_tickets_states_by_ticket_id_list(
+            ticket_id_list, username)
         if flag:
             code, msg, data = 0, '', result
         else:
@@ -344,11 +365,13 @@ class TicketAccept(LoonBaseView):
         username = request.META.get('HTTP_USERNAME')
 
         app_name = request.META.get('HTTP_APPNAME')
-        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(app_name, ticket_id)
+        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(
+            app_name, ticket_id)
         if not app_permission_check:
             return api_response(-1, msg, '')
 
-        result, msg = ticket_base_service_ins.accept_ticket(ticket_id, username)
+        result, msg = ticket_base_service_ins.accept_ticket(
+            ticket_id, username)
         if result:
             code, msg, data = 0, msg, {}
         else:
@@ -381,23 +404,27 @@ class TicketDeliver(LoonBaseView):
         from_admin = request_data_dict.get('from_admin', 0)
 
         app_name = request.META.get('HTTP_APPNAME')
-        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(app_name, ticket_id)
+        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(
+            app_name, ticket_id)
         if not app_permission_check:
             return api_response(-1, msg, {})
 
         if from_admin:
-            flag, result = ticket_base_service_ins.ticket_admin_permission_check(ticket_id, username)
+            flag, result = ticket_base_service_ins.ticket_admin_permission_check(
+                ticket_id, username)
             if flag is False:
                 return api_response(-1, result, {})
         else:
             # 非管理员操作，校验用户是否有处理权限
-            flag, result = ticket_base_service_ins.ticket_handle_permission_check(ticket_id, username)
+            flag, result = ticket_base_service_ins.ticket_handle_permission_check(
+                ticket_id, username)
             if flag is False:
                 return api_response(-1, result, {})
             if result.get('permission') is False:
                 return api_response(-1, result.get('msg'), {})
 
-        result, msg = ticket_base_service_ins.deliver_ticket(ticket_id, username, target_username, suggestion)
+        result, msg = ticket_base_service_ins.deliver_ticket(
+            ticket_id, username, target_username, suggestion)
         if result:
             code, msg, data = 0, msg, result
         else:
@@ -427,11 +454,13 @@ class TicketAddNode(LoonBaseView):
         suggestion = request_data_dict.get('suggestion', '')
 
         app_name = request.META.get('HTTP_APPNAME')
-        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(app_name, ticket_id)
+        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(
+            app_name, ticket_id)
         if not app_permission_check:
             return api_response(-1, msg, '')
 
-        result, msg = ticket_base_service_ins.add_node_ticket(ticket_id, username, target_username, suggestion)
+        result, msg = ticket_base_service_ins.add_node_ticket(
+            ticket_id, username, target_username, suggestion)
         if result:
             code, msg, data = 0, msg, {}
         else:
@@ -461,11 +490,13 @@ class TicketAddNodeEnd(LoonBaseView):
         suggestion = request_data_dict.get('suggestion', '')
 
         app_name = request.META.get('HTTP_APPNAME')
-        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(app_name, ticket_id)
+        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(
+            app_name, ticket_id)
         if not app_permission_check:
             return api_response(-1, msg, '')
 
-        result, msg = ticket_base_service_ins.add_node_ticket_end(ticket_id, username, suggestion)
+        result, msg = ticket_base_service_ins.add_node_ticket_end(
+            ticket_id, username, suggestion)
         if result:
             code, msg, data = 0, msg, {}
         else:
@@ -491,11 +522,13 @@ class TicketField(LoonBaseView):
         username = request.META.get('HTTP_USERNAME')
 
         app_name = request.META.get('HTTP_APPNAME')
-        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(app_name, ticket_id)
+        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(
+            app_name, ticket_id)
         if not app_permission_check:
             return api_response(-1, msg, '')
 
-        result, msg = ticket_base_service_ins.update_ticket_field_value(ticket_id, request_data_dict)
+        result, msg = ticket_base_service_ins.update_ticket_field_value(
+            ticket_id, request_data_dict)
         if result:
             code, msg, data = 0, msg, {}
         else:
@@ -513,13 +546,15 @@ class TicketScriptRetry(LoonBaseView):
         username = request.META.get('HTTP_USERNAME')
 
         app_name = request.META.get('HTTP_APPNAME')
-        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(app_name, ticket_id)
+        app_permission_check, msg = account_base_service_ins.app_ticket_permission_check(
+            app_name, ticket_id)
         if not app_permission_check:
             return api_response(-1, msg, '')
 
         if not username:
             api_response(-1, 'need arg username', '')
-        result, msg = ticket_base_service_ins.retry_ticket_script(ticket_id, username)
+        result, msg = ticket_base_service_ins.retry_ticket_script(
+            ticket_id, username)
         if result:
             code, msg, data = 0, 'Ticket script or hook retry start successful', {}
         else:
@@ -528,7 +563,6 @@ class TicketScriptRetry(LoonBaseView):
 
 
 class TicketComment(LoonBaseView):
-
     post_schema = Schema({
         'suggestion': And(str, lambda n: n != '', error='suggestion is needed'),
     })
@@ -548,7 +582,8 @@ class TicketComment(LoonBaseView):
         ticket_id = kwargs.get('ticket_id')
         username = request.META.get('HTTP_USERNAME')
         suggestion = request_data_dict.get('suggestion', '')
-        result, msg = ticket_base_service_ins.add_comment(ticket_id, username, suggestion)
+        result, msg = ticket_base_service_ins.add_comment(
+            ticket_id, username, suggestion)
         if result:
             code, msg, data = 0, 'add ticket comment successful', {}
         else:
@@ -572,7 +607,8 @@ class TicketHookCallBack(LoonBaseView):
         request_data_dict = json.loads(json_str)
         app_name = request.META.get('HTTP_APPNAME')
 
-        result, msg = ticket_base_service_ins.hook_call_back(ticket_id, app_name, request_data_dict)
+        result, msg = ticket_base_service_ins.hook_call_back(
+            ticket_id, app_name, request_data_dict)
         if result:
             code, msg, data = 0, 'add ticket comment successful', {}
         else:
@@ -590,7 +626,8 @@ class TicketParticipantInfo(LoonBaseView):
         :return:
         """
         ticket_id = kwargs.get('ticket_id')
-        flag, msg = ticket_base_service_ins.get_ticket_participant_info(ticket_id)
+        flag, msg = ticket_base_service_ins.get_ticket_participant_info(
+            ticket_id)
         if flag:
             code, msg, data = 0, '', msg
         else:
@@ -613,11 +650,13 @@ class TicketClose(LoonBaseView):
         username = request.META.get('HTTP_USERNAME')
         suggestion = request_data_dict.get('suggestion', '')
 
-        flag, result = ticket_base_service_ins.close_ticket_permission_check(ticket_id, username)
+        flag, result = ticket_base_service_ins.close_ticket_permission_check(
+            ticket_id, username)
         if flag is False:
             return api_response(-1, result, {})
 
-        flag, msg = ticket_base_service_ins.close_ticket(ticket_id, username, suggestion)
+        flag, msg = ticket_base_service_ins.close_ticket(
+            ticket_id, username, suggestion)
         if flag:
             code, msg, data = 0, '', msg
         else:
@@ -638,7 +677,8 @@ class TicketsNumStatistics(LoonBaseView):
         end_date = kwargs.get('end_date', '')
         username = request.META.get('HTTP_USERNAME')
 
-        flag, result = ticket_base_service_ins.get_ticket_num_statistics(start_date, end_date, username)
+        flag, result = ticket_base_service_ins.get_ticket_num_statistics(
+            start_date, end_date, username)
         if flag:
             return api_response(0, '', result.get('result_list'))
         else:
@@ -660,9 +700,9 @@ class TicketRetreat(LoonBaseView):
         request_data_dict = json.loads(json_str)
         suggestion = request_data_dict.get('suggestion', '')
 
-        flag, result = ticket_base_service_ins.retreat_ticket(ticket_id, username, suggestion)
+        flag, result = ticket_base_service_ins.retreat_ticket(
+            ticket_id, username, suggestion)
         if flag:
             return api_response(0, '', {})
         else:
             return api_response(-1, result, {})
-

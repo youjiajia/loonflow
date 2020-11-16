@@ -17,7 +17,7 @@ class WorkflowStateService(BaseService):
 
     @staticmethod
     @auto_log
-    def get_workflow_states(workflow_id: int)->tuple:
+    def get_workflow_states(workflow_id: int) -> tuple:
         """
         获取流程的状态列表，每个流程的state不会很多，所以不分页
         get workflow state queryset
@@ -32,7 +32,8 @@ class WorkflowStateService(BaseService):
 
     @staticmethod
     @auto_log
-    def get_workflow_states_serialize(workflow_id: int, per_page: int=10, page: int=1, query_value: str='')->tuple:
+    def get_workflow_states_serialize(workflow_id: int, per_page: int = 10, page: int = 1,
+                                      query_value: str = '') -> tuple:
         """
         获取序列化工作流状态记录
         get restful workflow's state by params
@@ -75,7 +76,7 @@ class WorkflowStateService(BaseService):
 
     @staticmethod
     @auto_log
-    def get_workflow_state_by_id(state_id: int)->tuple:
+    def get_workflow_state_by_id(state_id: int) -> tuple:
         """
         获取state详情
         get state info by id
@@ -92,7 +93,7 @@ class WorkflowStateService(BaseService):
 
     @classmethod
     @auto_log
-    def get_restful_state_info_by_id(cls, state_id: int)->tuple:
+    def get_restful_state_info_by_id(cls, state_id: int) -> tuple:
         if not state_id:
             return False, 'except state_id but not provided'
         else:
@@ -110,7 +111,7 @@ class WorkflowStateService(BaseService):
 
     @classmethod
     @auto_log
-    def get_workflow_start_state(cls, workflow_id: int)->tuple:
+    def get_workflow_start_state(cls, workflow_id: int) -> tuple:
         """
         获取工作流初始状态
         get workflow's init state
@@ -126,7 +127,7 @@ class WorkflowStateService(BaseService):
 
     @classmethod
     @auto_log
-    def get_states_info_by_state_id_list(cls, state_id_list)->tuple:
+    def get_states_info_by_state_id_list(cls, state_id_list) -> tuple:
         state_queryset = State.objects.filter(is_deleted=0, id__in=state_id_list).all()
         state_info_dict = {}
         for state in state_queryset:
@@ -136,7 +137,7 @@ class WorkflowStateService(BaseService):
 
     @classmethod
     @auto_log
-    def get_workflow_end_state(cls, workflow_id: int)->tuple:
+    def get_workflow_end_state(cls, workflow_id: int) -> tuple:
         """
         获取工作流结束状态
         get workflow's end state
@@ -152,14 +153,15 @@ class WorkflowStateService(BaseService):
 
     @classmethod
     @auto_log
-    def get_workflow_init_state(cls, workflow_id: int)->tuple:
+    def get_workflow_init_state(cls, workflow_id: int) -> tuple:
         """
         获取工作流的初始状态信息，包括允许的transition
         get workflow's init state, include allow transition
         :param workflow_id:
         :return:
         """
-        init_state_obj = State.objects.filter(workflow_id=workflow_id, is_deleted=False, type_id=constant_service_ins.STATE_TYPE_START).first()
+        init_state_obj = State.objects.filter(workflow_id=workflow_id, is_deleted=False,
+                                              type_id=constant_service_ins.STATE_TYPE_START).first()
         if not init_state_obj:
             return False, '该工作流尚未配置初始状态'
 
@@ -211,7 +213,7 @@ class WorkflowStateService(BaseService):
 
     @classmethod
     @auto_log
-    def get_format_participant_info(cls, participant_type_id: int, participant: str)->tuple:
+    def get_format_participant_info(cls, participant_type_id: int, participant: str) -> tuple:
         """
         获取格式化的参与人信息
         get format participant info
@@ -280,7 +282,6 @@ class WorkflowStateService(BaseService):
                     participant_name_alias_list.append('未知')
             participant_alias = ','.join(participant_name_alias_list)
 
-
         elif participant_type_id == constant_service_ins.PARTICIPANT_TYPE_ROBOT:
             if participant:
                 flag, result = workflow_run_script_service_ins.get_run_script_by_id(int(participant))
@@ -299,7 +300,7 @@ class WorkflowStateService(BaseService):
     def add_workflow_state(cls, workflow_id: int, name: str, is_hidden: int, order_id: int,
                            type_id: int, remember_last_man_enable: int, participant_type_id: int, participant: str,
                            distribute_type_id: int, state_field_str: str, label: str, creator: str,
-                           enable_retreat: int)->tuple:
+                           enable_retreat: int) -> tuple:
         """
         新增工作流状态
         add workflow state
@@ -331,7 +332,7 @@ class WorkflowStateService(BaseService):
     def edit_workflow_state(cls, state_id: int, workflow_id: int, name: str, is_hidden: int,
                             order_id: int, type_id: int, remember_last_man_enable: int, participant_type_id: int,
                             participant: str, distribute_type_id: int, state_field_str: str, label: str,
-                            enable_retreat: int)->tuple:
+                            enable_retreat: int) -> tuple:
         """
         新增工作流状态
         edit workflow state
@@ -362,7 +363,7 @@ class WorkflowStateService(BaseService):
 
     @classmethod
     @auto_log
-    def del_workflow_state(cls, state_id: int)->tuple:
+    def del_workflow_state(cls, state_id: int) -> tuple:
         """
         删除状态
         :param state_id:

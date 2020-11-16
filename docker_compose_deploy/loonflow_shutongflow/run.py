@@ -43,12 +43,13 @@ def init_db():
     导入loonflow及shutongflow的初始数据库
     :return:
     """
-    print('-'*30)
+    print('-' * 30)
     print('开始导入初始化sql，需要下载镜像arey/mysql-client, 请耐心等候')
     init_loonflow_sql = os.path.abspath(os.path.join(os.getcwd(), "..")) + 'loonflow-web/loonflow_demo_init.sql'
     init_shutongflow_sql = os.path.abspath(os.path.join(os.getcwd(), "..")) + 'shutongflow/shutongflow_demo_init.sql'
 
-    cmd_str = 'docker run -i arey/mysql-client -h{} -p{} -u{} {} < {}'.format(db_host, ddl_db_password, ddl_db_user,db_name, init_sql)
+    cmd_str = 'docker run -i arey/mysql-client -h{} -p{} -u{} {} < {}'.format(db_host, ddl_db_password, ddl_db_user,
+                                                                              db_name, init_sql)
     print(cmd_str)
     run_cmd(cmd_str)
     print('-' * 30)
@@ -81,7 +82,7 @@ def start():
         print('-' * 30)
         print('启动成功，你可以直接通过http://hostip来访问loonflow的管理后台,其中hostip为你宿主机的ip')
     else:
-        print('x'*30)
+        print('x' * 30)
         print('启动失败,请确认已经安装了docker compose后检查报错信息')
 
 

@@ -14,7 +14,8 @@ class LoonBaseView(View):
         # defer to the error handler. Also defer to the error handler if the
         # request method isn't on the approved list.
         if request.method.lower() in self.http_method_names:
-            handler = getattr(self, request.method.lower(), self.http_method_not_allowed)
+            handler = getattr(self, request.method.lower(),
+                              self.http_method_not_allowed)
         else:
             handler = self.http_method_not_allowed
         request_method = request.method.lower()
@@ -27,6 +28,4 @@ class LoonBaseView(View):
                 print(e.__str__())
                 return api_response(-1, '请求参数不合法:{}'.format(e.__str__()), {})
 
-
         return handler(request, *args, **kwargs)
-

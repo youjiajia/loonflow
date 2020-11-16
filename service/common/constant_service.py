@@ -74,21 +74,21 @@ class ConstantService(BaseService):
                                        'creator', 'is_deleted', 'gmt_created', 'gmt_modified', 'script_run_last_result']
 
         self.FIELD_VALUE_ENUM = {
-                        self.FIELD_TYPE_STR: 'char_value',
-                        self.FIELD_TYPE_INT: 'int_value',
-                        self.FIELD_TYPE_FLOAT: 'float_value',
-                        self.FIELD_TYPE_BOOL: 'bool_value',
-                        self.FIELD_TYPE_DATE: 'date_value',
-                        self.FIELD_TYPE_DATETIME: 'datetime_value',
-                        self.FIELD_TYPE_RADIO: 'radio_value',
-                        self.FIELD_TYPE_CHECKBOX: 'checkbox_value',
-                        self.FIELD_TYPE_SELECT: 'select_value',
-                        self.FIELD_TYPE_MULTI_SELECT: 'multi_select_value',
-                        self.FIELD_TYPE_TEXT: 'text_value',
-                        self.FIELD_TYPE_USERNAME: 'username_value',
-                        self.FIELD_TYPE_MULTI_USERNAME: 'multi_username_value',
-                        self.FIELD_TYPE_ATTACHMENT: 'char_value'
-                    }
+            self.FIELD_TYPE_STR: 'char_value',
+            self.FIELD_TYPE_INT: 'int_value',
+            self.FIELD_TYPE_FLOAT: 'float_value',
+            self.FIELD_TYPE_BOOL: 'bool_value',
+            self.FIELD_TYPE_DATE: 'date_value',
+            self.FIELD_TYPE_DATETIME: 'datetime_value',
+            self.FIELD_TYPE_RADIO: 'radio_value',
+            self.FIELD_TYPE_CHECKBOX: 'checkbox_value',
+            self.FIELD_TYPE_SELECT: 'select_value',
+            self.FIELD_TYPE_MULTI_SELECT: 'multi_select_value',
+            self.FIELD_TYPE_TEXT: 'text_value',
+            self.FIELD_TYPE_USERNAME: 'username_value',
+            self.FIELD_TYPE_MULTI_USERNAME: 'multi_username_value',
+            self.FIELD_TYPE_ATTACHMENT: 'char_value'
+        }
 
 
 constant_service_ins = ConstantService()

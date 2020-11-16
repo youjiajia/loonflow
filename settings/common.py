@@ -13,12 +13,10 @@ https://docs.djangoproject.com/en/2.0/ref/settings/
 import os
 import platform
 
-
-VERSION = 'v1.0.12'
+VERSION = 'v1.0.13'
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
@@ -30,7 +28,6 @@ SECRET_KEY = 'm$*&&u*9+-$g^b9lj0)**1$0$wfh1wk$ye^4p+s)cera)g3fml'
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -45,7 +42,6 @@ INSTALLED_APPS = [
     'apps.ticket',
     'apps.workflow',
 ]
-
 
 ROOT_URLCONF = 'loonflow.urls'
 
@@ -62,10 +58,10 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'loonflow.contexts.global_variables',
             ],
-        'libraries':{
-                    'loonflow_filter': 'apps.manage.templatetags.loonflow_filter',
+            'libraries': {
+                'loonflow_filter': 'apps.manage.templatetags.loonflow_filter',
 
-                    }
+            }
         },
     },
 ]
@@ -80,12 +76,9 @@ STATICFILES_DIRS = (
 
     #     ("css", os.path.join(STATIC_ROOT,'css')),
 
-
     ("bower_components", os.path.join(STATIC_ROOT, 'bower_components')),
     ("dist", os.path.join(STATIC_ROOT, 'dist')),
     ("plugins", os.path.join(STATIC_ROOT, 'plugins')),
-
-
 
     # ("js", os.path.join(STATIC_ROOT, 'js')),
     # ("image", os.path.join(STATIC_ROOT, 'image')),
@@ -104,10 +97,8 @@ STATICFILES_DIRS = (
 
 WSGI_APPLICATION = 'loonflow.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/2.0/ref/settings/#databases
-
 
 
 # Password validation
@@ -127,7 +118,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.0/topics/i18n/
@@ -151,10 +141,8 @@ TIME_FORMAT = 'H:i:s'
 
 
 LOGIN_URL = '/account/login/'
-AUTH_USER_MODEL = 'account.LoonUser'
 
 STATIC_URL = '/static/'
-
 
 FIXTURE_DIRS = ['fixtures/']
 STATIC_FILES_VERSION = '1.0'

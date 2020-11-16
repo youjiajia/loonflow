@@ -24,5 +24,5 @@ def manage_permission_check(permission=None):
             return func(view_class, request, *args, **kwargs)
 
         return _deco
-    return decorator
 
+    return decorator

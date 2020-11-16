@@ -31,7 +31,7 @@ class TestTicketView(LoonflowTest):
         :return:
         """
         url = '/api/v1.0/tickets'
-        response_content_dict = LoonflowApiCall().api_call('get', url, {'category':'all', 'username':'wangfei'})
+        response_content_dict = LoonflowApiCall().api_call('get', url, {'category': 'all', 'username': 'wangfei'})
         self.assertEqual(response_content_dict.get('code'), 0)
 
     def test_get_ticket_list_category_duty(self):
@@ -93,7 +93,7 @@ class TestTicketView(LoonflowTest):
         ticket_participant_type_id = last_ticket_obj.participant_type_id
         ticket_participant = last_ticket_obj.participant
         if ticket_participant_type_id == constant_service_ins.PARTICIPANT_TYPE_PERSONAL:
-            username= ticket_participant
+            username = ticket_participant
         elif ticket_participant_type_id == constant_service_ins.PARTICIPANT_TYPE_MULTI:
             username = ticket_participant.split(',')[0]
         url = '/api/v1.0/tickets/{}/transitions'.format(last_ticket_id)
@@ -171,4 +171,3 @@ class TestTicketView(LoonflowTest):
         url = '/api/v1.0/tickets'
         response_content_dict = LoonflowApiCall().api_call('get', url, params)
         return response_content_dict
-

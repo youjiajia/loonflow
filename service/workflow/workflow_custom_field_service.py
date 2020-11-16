@@ -29,7 +29,7 @@ class WorkflowCustomFieldService(BaseService):
                 label = '{}'
             format_custom_field_dict[custom_field.field_key] = dict(
                 workflow_id=custom_field.workflow_id, field_type_id=custom_field.field_type_id,
-                field_name=custom_field.field_name,order_id=custom_field.order_id,
+                field_name=custom_field.field_name, order_id=custom_field.order_id,
                 default_value=custom_field.default_value, description=custom_field.description,
                 field_template=custom_field.field_template, boolean_field_display=custom_field.boolean_field_display,
                 field_choice=custom_field.field_choice, label=label)
@@ -63,7 +63,7 @@ class WorkflowCustomFieldService(BaseService):
         query_params = Q(is_deleted=False, workflow_id=workflow_id)
         if query_value:
             query_params &= Q(field_key__contains=query_value) | Q(description__contains=query_value) \
-                            | Q(field_name__contains=query_value)
+                | Q(field_name__contains=query_value)
 
         workflow_custom_field_queryset = CustomField.objects.filter(query_params).order_by('id')
         paginator = Paginator(workflow_custom_field_queryset, per_page)
@@ -89,7 +89,8 @@ class WorkflowCustomFieldService(BaseService):
 
     @classmethod
     @auto_log
-    def add_record(cls, workflow_id: int, field_type_id: int, field_key: str, field_name: str, order_id: int, default_value: str, description: str, field_template: str,
+    def add_record(cls, workflow_id: int, field_type_id: int, field_key: str, field_name: str, order_id: int,
+                   default_value: str, description: str, field_template: str,
                    boolean_field_display: str, field_choice: str, label: str, creator: str):
         """
         新增自定义字段记录
@@ -120,7 +121,7 @@ class WorkflowCustomFieldService(BaseService):
     @auto_log
     def edit_record(cls, custom_field_id: int, workflow_id: int, field_type_id: int, field_key: str, field_name: str,
                     order_id: int, default_value: str, description: str, field_template: str,
-                    boolean_field_display: str, field_choice: str, label: str)->tuple:
+                    boolean_field_display: str, field_choice: str, label: str) -> tuple:
         """
         修改自定义字段记录
         update custom field record
@@ -150,7 +151,7 @@ class WorkflowCustomFieldService(BaseService):
 
     @classmethod
     @auto_log
-    def delete_record(cls, custom_field_id: int)->tuple:
+    def delete_record(cls, custom_field_id: int) -> tuple:
         """
         删除记录
         :param custom_field_id:

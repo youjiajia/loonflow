@@ -1,6 +1,7 @@
 *.pyc
 .idea/
 .vscode
+.venv
 .DS_Store
 *.swp
 **/migrations/0*.py
@@ -15,3 +16,4 @@ sphinx_docs/build/
 sphinx_docs/source/_build/
 docker_compose_deploy/loonflow_only/dbdata/*
 docker_compose_deploy/loonflow_shutongflow/dbdata/*
+Pipfile.lock

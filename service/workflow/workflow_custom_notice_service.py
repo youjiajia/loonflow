@@ -15,7 +15,7 @@ class WorkflowCustomNoticeService(BaseService):
 
     @classmethod
     @auto_log
-    def get_notice_list(cls, query_value: str, page: int, per_page: int)->tuple:
+    def get_notice_list(cls, query_value: str, page: int, per_page: int) -> tuple:
         """
         获取通知列表
         :param query_value:
@@ -44,7 +44,7 @@ class WorkflowCustomNoticeService(BaseService):
 
     @classmethod
     @auto_log
-    def add_custom_notice(cls, name: str, description: str, hook_url: str, hook_token: str, creator: str)->tuple:
+    def add_custom_notice(cls, name: str, description: str, hook_url: str, hook_token: str, creator: str) -> tuple:
         """
         新增自定义通知记录
         :param name:
@@ -61,7 +61,8 @@ class WorkflowCustomNoticeService(BaseService):
 
     @classmethod
     @auto_log
-    def update_custom_notice(cls, custom_notice_id: int, name: str, description: str, hook_url: str, hook_token: str)->tuple:
+    def update_custom_notice(cls, custom_notice_id: int, name: str, description: str, hook_url: str,
+                             hook_token: str) -> tuple:
         """
         更新自定义通知
         :param custom_notice_id:
@@ -80,7 +81,7 @@ class WorkflowCustomNoticeService(BaseService):
 
     @classmethod
     @auto_log
-    def del_custom_notice(cls, custom_notice_id: int)->tuple:
+    def del_custom_notice(cls, custom_notice_id: int) -> tuple:
         """
         删除脚本
         :id: 

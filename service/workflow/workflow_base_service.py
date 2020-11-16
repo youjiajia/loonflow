@@ -1,7 +1,7 @@
 import json
 from django.db.models import Q
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from apps.workflow.models import Workflow, WorkflowAdmin
+from apps.workflow.models import Workflow
 from service.base_service import BaseService
 from service.common.log_service import auto_log
 from service.account.account_base_service import AccountBaseService, account_base_service_ins
@@ -16,7 +16,8 @@ class WorkflowBaseService(BaseService):
 
     @classmethod
     @auto_log
-    def get_workflow_list(cls, name: str, page: int, per_page: int, workflow_id_list: list, username: str, from_admin:int =1)->tuple:
+    def get_workflow_list(cls, name: str, page: int, per_page: int, workflow_id_list: list, username: str,
+                          from_admin: int = 1) -> tuple:
         """
         获取工作流列表
         get workflow list by params
@@ -40,7 +41,8 @@ class WorkflowBaseService(BaseService):
 
             workflow_manage_list = result.get('workflow_list')
             workflow_manage_id_list = [workflow_manage.get('id') for workflow_manage in workflow_manage_list]
-            workflow_id_list = list(set(workflow_manage_id_list) - (set(workflow_manage_id_list) - set(workflow_id_list)))
+            workflow_id_list = list(
+                set(workflow_manage_id_list) - (set(workflow_manage_id_list) - set(workflow_id_list)))
 
         query_params &= Q(id__in=workflow_id_list)
 
@@ -69,23 +71,13 @@ class WorkflowBaseService(BaseService):
                      content_template=workflow_result_object.content_template
                      )
             )
-        # 获取工作流管理员信息
-        workflow_admin_queryset = WorkflowAdmin.objects.filter(
-            workflow_id__in=workflow_result_id_list, is_deleted=0).all()
-        for workflow_result_restful in workflow_result_restful_list:
-            workflow_admin_list = []
-            for workflow_admin_object in workflow_admin_queryset:
-                if workflow_admin_object.workflow_id == workflow_result_restful['id']:
-                    workflow_admin_list.append(workflow_admin_object.username)
-
-            workflow_result_restful['workflow_admin'] = ','.join(workflow_admin_list)
 
         return True, dict(workflow_result_restful_list=workflow_result_restful_list,
                           paginator_info=dict(per_page=per_page, page=page, total=paginator.count))
 
     @classmethod
     @auto_log
-    def get_workflow_manage_list(cls, username: str)->tuple:
+    def get_workflow_manage_list(cls, username: str) -> tuple:
         """
         获取有管理权限的工作流列表
         :param username:
@@ -93,15 +85,7 @@ class WorkflowBaseService(BaseService):
         """
         # 如果是admin,拥有所有工作流的权限
         flag, result = account_base_service_ins.admin_permission_check(username=username)
-        if flag:
-            workflow_queryset = Workflow.objects.filter(is_deleted=0).all()
-        else:
-            # 作为工作流创建人+工作流管理员的工作流
-            workflow_admin_queryset = WorkflowAdmin.objects.filter(username=username, is_deleted=0).all()
-            workflow_admin_id_list = [workflow_admin.workflow_id for workflow_admin in workflow_admin_queryset]
-
-            workflow_queryset = Workflow.objects.filter(
-                Q(creator=username, is_deleted=0) | Q(id__in=workflow_admin_id_list, is_deleted=0)).all()
+        workflow_queryset = Workflow.objects.filter(is_deleted=0).all()
 
         workflow_restful_list = [workflow.get_dict() for workflow in workflow_queryset]
 
@@ -109,7 +93,7 @@ class WorkflowBaseService(BaseService):
 
     @classmethod
     @auto_log
-    def check_new_permission(cls, username: str, workflow_id: int)->tuple:
+    def check_new_permission(cls, username: str, workflow_id: int) -> tuple:
         """
         判断用户是否有新建工单的权限
         check whether user can create ticket
@@ -124,7 +108,7 @@ class WorkflowBaseService(BaseService):
         limit_expression = workflow_obj.limit_expression
         if not limit_expression:
             return True, 'no limit_expression set'
-        #'限制周期({"period":24} 24小时), 限制次数({"count":1}在限制周期内只允许提交1次), 限制级别({"level":1} 针对(1单个用户 2全局)限制周期限制次数,默认特定用户);允许特定人员提交({"allow_persons":"zhangsan,lisi"}只允许张三提交工单,{"allow_depts":"1,2"}只允许部门id为1和2的用户提交工单，{"allow_roles":"1,2"}只允许角色id为1和2的用户提交工单)
+        # '限制周期({"period":24} 24小时), 限制次数({"count":1}在限制周期内只允许提交1次), 限制级别({"level":1} 针对(1单个用户 2全局)限制周期限制次数,默认特定用户);允许特定人员提交({"allow_persons":"zhangsan,lisi"}只允许张三提交工单,{"allow_depts":"1,2"}只允许部门id为1和2的用户提交工单，{"allow_roles":"1,2"}只允许角色id为1和2的用户提交工单)
         limit_expression_dict = json.loads(limit_expression)
         limit_period = limit_expression_dict.get('period')
         limit_count = limit_expression_dict.get('limit_count')
@@ -151,7 +135,7 @@ class WorkflowBaseService(BaseService):
                 if not limit_expression_dict.get('count'):
                     return False, 'count is need when level is not none'
                 if count_result > limit_expression_dict.get('count'):
-                    return False, '{} tickets can be created in {}hours when workflow_id is {}'\
+                    return False, '{} tickets can be created in {}hours when workflow_id is {}' \
                         .format(limit_count, limit_period, workflow_id)
 
         if limit_allow_persons:
@@ -165,7 +149,7 @@ class WorkflowBaseService(BaseService):
             # 只要user_all_dept_id_list中的某个部门包含在允许范围内即可
             limit_allow_dept_str_list = limit_allow_depts.split(',')
             limit_allow_dept_id_list = [int(limit_allow_dept_str) for limit_allow_dept_str in limit_allow_dept_str_list]
-            limit_allow_dept_id_list = list(set(limit_allow_dept_id_list)) #去重
+            limit_allow_dept_id_list = list(set(limit_allow_dept_id_list))  # 去重
             total_list = user_all_dept_id_list + limit_allow_dept_id_list
             if len(total_list) == len(set(total_list)):
                 # 去重后长度相等，说明两个list完全没有重复，即用户所在部门id肯定不在允许的部门id列表内
@@ -185,7 +169,7 @@ class WorkflowBaseService(BaseService):
 
     @classmethod
     @auto_log
-    def get_by_id(cls, workflow_id: int)->tuple:
+    def get_by_id(cls, workflow_id: int) -> tuple:
         """
         获取工作流 by id
         get workflow object by workflow id
@@ -201,7 +185,7 @@ class WorkflowBaseService(BaseService):
     @auto_log
     def add_workflow(cls, name: str, description: str, notices: str, view_permission_check: int, limit_expression: str,
                      display_form_str: str, creator: str, workflow_admin: str, title_template: str,
-                     content_template: str)->tuple:
+                     content_template: str) -> tuple:
         """
         新增工作流
         add workflow
@@ -223,18 +207,13 @@ class WorkflowBaseService(BaseService):
                                 content_template=content_template)
         workflow_obj.save()
         workflow_admin_insert_list = []
-        if workflow_admin:
-            for username in workflow_admin.split(','):
-                workflow_admin_insert_list.append(WorkflowAdmin(
-                    workflow_id=workflow_obj.id, username=username, creator=creator))
-            WorkflowAdmin.objects.bulk_create(workflow_admin_insert_list)
         return True, dict(workflow_id=workflow_obj.id)
 
     @classmethod
     @auto_log
     def edit_workflow(cls, workflow_id: int, name: str, description: str, notices: str, view_permission_check: int,
                       limit_expression: str, display_form_str: str, workflow_admin: str, title_template: str,
-                      content_template: str)->tuple:
+                      content_template: str) -> tuple:
         """
         更新工作流
         update workfow
@@ -256,35 +235,12 @@ class WorkflowBaseService(BaseService):
                                 view_permission_check=view_permission_check,
                                 limit_expression=limit_expression, display_form_str=display_form_str,
                                 title_template=title_template, content_template=content_template)
-        # 更新工作流管理员
-        if workflow_admin:
-            workflow_admin_list = workflow_admin.split(',')
-            # 查询已经存在的记录
-            workflow_admin_existed_queryset = WorkflowAdmin.objects.filter(
-                workflow_id=workflow_id, username__in=workflow_admin_list, is_deleted=0).all()
-            workflow_admin_existed_list = [workflow_admin_existed.username for workflow_admin_existed
-                                           in workflow_admin_existed_queryset]
-            # 删除移除掉的
-            WorkflowAdmin.objects.filter(workflow_id=workflow_id, is_deleted=0)\
-                .exclude(username__in=workflow_admin_list).update(is_deleted=1)
-
-            # 新增新添加的
-            workflow_admin_need_add_list = list(set(workflow_admin_list) - set(workflow_admin_existed_list))
-            workflow_admin_need_add_insert_list = []
-            for workflow_admin_need_add in workflow_admin_need_add_list:
-                workflow_admin_need_add_insert_list.append(WorkflowAdmin(
-                    workflow_id=workflow_id, username=workflow_admin_need_add))
-            WorkflowAdmin.objects.bulk_create(workflow_admin_need_add_insert_list)
-
-        else:
-            # 删除所有记录
-            WorkflowAdmin.objects.filter(workflow_id=workflow_id, is_deleted=0).update(is_deleted=1)
 
         return True, ''
 
     @classmethod
     @auto_log
-    def delete_workflow(cls, workflow_id: int)->tuple:
+    def delete_workflow(cls, workflow_id: int) -> tuple:
         """
         删除工作流
         delete workflow
