@@ -18,6 +18,7 @@ class LoonAppTokenView(LoonBaseView):
     post_schema = Schema({
         'app_name': And(str, lambda n: n != '', error='app_name is needed'),
         Optional('ticket_sn_prefix'): str,
+        Optional('workflow_ids'): str,
     })
 
     @manage_permission_check('admin')
