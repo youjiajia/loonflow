@@ -123,13 +123,7 @@ class TicketBaseService(BaseService):
             query_params &= Q(id__in=ticket_id_list)
 
         if kwargs.get('from_admin'):
-            permission_workflow_id_set = set(workflow_admin_id_list) - (
-                set(workflow_admin_id_list) - set(app_workflow_id_list))
-            if query_workflow_id_list:
-                ending_workflow_id_list = list(
-                    permission_workflow_id_set - (permission_workflow_id_set - set(query_workflow_id_list)))
-            else:
-                ending_workflow_id_list = list(permission_workflow_id_set)
+            ending_workflow_id_list = workflow_admin_id_list
         else:
             if query_workflow_id_list:
                 ending_workflow_id_list = list(

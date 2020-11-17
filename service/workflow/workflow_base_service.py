@@ -11,20 +11,22 @@ class WorkflowBaseService(BaseService):
     """
     流程服务
     """
+
     def __init__(self):
         pass
 
     @classmethod
     @auto_log
-    def get_workflow_list(cls, name: str, page: int, per_page: int, workflow_id_list: list, username: str,
+    def get_workflow_list(cls, name: str, page: int, per_page: int, app_name: str, username: str,
                           from_admin: int = 1) -> tuple:
         """
         获取工作流列表
         get workflow list by params
+        :param app_name:
+        :param module:
         :param name:
         :param page:
         :param per_page:
-        :param workflow_id_list:workflow id list
         :param username
         :param from_admin 管理后台
         :return:
@@ -41,10 +43,9 @@ class WorkflowBaseService(BaseService):
 
             workflow_manage_list = result.get('workflow_list')
             workflow_manage_id_list = [workflow_manage.get('id') for workflow_manage in workflow_manage_list]
-            workflow_id_list = list(
-                set(workflow_manage_id_list) - (set(workflow_manage_id_list) - set(workflow_id_list)))
-
-        query_params &= Q(id__in=workflow_id_list)
+            query_params &= Q(id__in=workflow_manage_id_list)
+        else:
+            query_params &= Q(app_name=app_name)
 
         workflow_queryset = Workflow.objects.filter(query_params).order_by('id')
         paginator = Paginator(workflow_queryset, per_page)
@@ -83,8 +84,6 @@ class WorkflowBaseService(BaseService):
         :param username:
         :return:
         """
-        # 如果是admin,拥有所有工作流的权限
-        flag, result = account_base_service_ins.admin_permission_check(username=username)
         workflow_queryset = Workflow.objects.filter(is_deleted=0).all()
 
         workflow_restful_list = [workflow.get_dict() for workflow in workflow_queryset]

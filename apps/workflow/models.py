@@ -9,6 +9,7 @@ class State(BaseModel):
     状态记录, 变量支持通过脚本获取
     """
     name = models.CharField('名称', max_length=50)
+    description = models.CharField('描述', default='', max_length=512)
     is_hidden = models.BooleanField(
         '是否隐藏', default=False, help_text='设置为True时,获取工单步骤api中不显示此状态(当前处于此状态时除外)')
     order_id = models.IntegerField(
@@ -28,21 +29,18 @@ class State(BaseModel):
     participant = models.CharField('参与者', default='', blank=True, max_length=1000,
                                    help_text='可以为空(无处理人的情况，如结束状态)、username\多个username(以,隔开)'
                                              '\部门id\角色id\变量(creator,creator_tl)\脚本记录的id等，包含子工作流的需要设置处理人为loonrobot')
-
+    chiefs = models.CharField('负责人', default='', blank=True, max_length=100)
     distribute_type_id = models.IntegerField('分配方式', default=1,
                                              help_text='1.主动接单(如果当前处理人实际为多人的时候，需要先接单才能处理) '
                                                        '2.直接处理(即使当前处理人实际为多人，也可以直接处理) '
                                                        '3.随机分配(如果实际为多人，则系统会随机分配给其中一个人) '
                                                        '4.全部处理(要求所有参与人都要处理一遍,才能进入下一步)')
-    state_field_str = models.TextField('表单字段', default='{}',
-                                       help_text='json格式字典存储,包括读写属性1：只读，2：必填，3：可选. '
-                                                 '示例：{"created_at":1,"title":2, "sn":1}, '
-                                                 '内置特殊字段participant_info.participant_name:当前处理人信息(部门名称、角色名称)，'
-                                                 'state.state_name:当前状态的状态名,workflow.workflow_name:工作流名称')
-    # json格式存储,包括读写属性1：只读，2：必填，3：可选，4：不显示, 字典的字典
     label = models.CharField('状态标签', max_length=1000, default='{}',
                              help_text='json格式，由调用方根据实际定制需求自行确定,如状态下需要显示哪些前端组件:'
                                        '{"components":[{"AppList":1, "ProjectList":7}]}')
+    app_name = models.CharField('应用名称', default='', max_length=50)
+    module = models.CharField('模块名称', default='', max_length=50)
+    deadline = models.IntegerField("最后期限，工作日", default=1)
 
     class Meta:
         verbose_name = '工作流状态'
@@ -82,6 +80,7 @@ class Workflow(BaseModel):
     change_operator = models.CharField('更改环节操作人', default='', blank=True, max_length=1000,
                                        help_text='可以为空(无处理人的情况，如结束状态)、username\多个username(以,隔开)'
                                                  '\部门id\角色id\变量(creator,creator_tl)\脚本记录的id等，包含子工作流的需要设置处理人为loonrobot')
+    app_name = models.CharField('应用名称', default='', max_length=50)
 
     class Meta:
         verbose_name = '工作流'
@@ -122,7 +121,7 @@ class Transition(BaseModel):
 
 class CustomField(BaseModel):
     """自定义字段, 设定某个工作流有哪些自定义字段"""
-    workflow_id = models.IntegerField('工作流id')
+    state = models.ForeignKey(State, to_field='id', db_constraint=False, on_delete=False)
     field_type_id = models.IntegerField('类型',
                                         help_text='5.字符串，10.整形，15.浮点型，20.布尔，25.日期，30.日期时间，35.单选框，40.多选框，'
                                                   '45.下拉列表，50.多选下拉列表，55.文本域，60.用户名, 70.多选的用户名, '
@@ -147,6 +146,8 @@ class CustomField(BaseModel):
                                               '{"1":"中国", "2":"美国"},注意数字也需要引号')
     label = models.CharField('标签', max_length=100, blank=True, default='{}',
                              help_text='自定义标签，json格式，调用方可根据标签自行处理特殊场景逻辑，loonflow只保存文本内容')
+    is_necessary = models.BooleanField('是否必填', default=False, help_text='是否必填')
+    is_show = models.BooleanField('是否展示', default=False, help_text='是否展示')
 
     class Meta:
         verbose_name = '工作流自定义字段'

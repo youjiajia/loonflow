@@ -23,8 +23,9 @@ class CommonService(BaseService):
         if tar_str == signature:
             # The validity of the signature: 120s
             time_now_int = int(time.time())
-            if abs(time_now_int - int(timestamp)) <= 120:
-                # if abs(time_now_int - int(timestamp)) <= 12000000000000000:
+            # if abs(time_now_int - int(timestamp)) <= 120:
+            # todo  for test
+            if abs(time_now_int - int(timestamp)) <= 12000000000000000:
                 return True, ''
             else:
                 msg = 'The signature you provide in request header is expire, please ensure in 120s'

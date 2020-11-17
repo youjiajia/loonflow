@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from django.views import View
 from schema import Schema, Regex, And, Or, Use, Optional
@@ -38,19 +39,8 @@ class WorkflowView(LoonBaseView):
         username = request.META.get('HTTP_USERNAME')
         app_name = request.META.get('HTTP_APPNAME')
 
-        flag, result = account_base_service_ins.app_workflow_permission_list(
-            app_name)
-
-        if not flag:
-            return api_response(-1, result, {})
-        if not result.get('workflow_id_list'):
-            data = dict(value=[], per_page=per_page, page=page, total=0)
-            code, msg, = 0, ''
-            return api_response(code, msg, data)
-        permission_workflow_id_list = result.get('workflow_id_list')
-
         flag, result = workflow_base_service_ins.get_workflow_list(search_value, page, per_page,
-                                                                   permission_workflow_id_list, username, from_admin)
+                                                                   app_name, username, from_admin)
         if flag is not False:
             paginator_info = result.get('paginator_info')
             data = dict(value=result.get('workflow_result_restful_list'), per_page=paginator_info.get('per_page'),
@@ -60,7 +50,6 @@ class WorkflowView(LoonBaseView):
             code, data, msg = -1, '', result
         return api_response(code, msg, data)
 
-    @manage_permission_check('workflow_admin')
     def post(self, request, *args, **kwargs):
         """
         新增工作流
@@ -411,7 +400,105 @@ class WorkflowTransitionDetailView(LoonBaseView):
         return api_response(code, msg, data)
 
 
-class StateView(LoonBaseView):
+class WorkflowStateView(LoonBaseView):
+    post_schema = Schema({
+        'name': And(str, lambda n: n != '', error='name is needed'),
+        'module': And(str, lambda n: n != '', error='module is needed'),
+        'chiefs': And(list, lambda n: n != '', error='chiefs is needed'),
+        'participant': And(list, lambda n: n != '', error='participant is needed'),
+        'deadline': And(int, lambda n: n != '', error='deadline is needed'),
+        str: object
+    })
+
+    def get(self, request, *args, **kwargs):
+        """
+        获取工作流拥有的state列表信息
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        request_data = request.GET
+        app_name = request.META.get('HTTP_APPNAME')
+        search_value = request_data.get('search_value', '')
+        per_page = int(request_data.get('rowsPerPage', 10)
+                       ) if request_data.get('rowsPerPage', 10) else 10
+        page = int(request_data.get('page', 1)
+                   ) if request_data.get('page', 1) else 1
+        module = request_data.get('module', '')
+        flag, result = workflow_state_service_ins.get_app_states_serialize(app_name, per_page, page,
+                                                                           search_value, module)
+
+        if flag is not False:
+            paginator_info = result.get('paginator_info')
+            data = dict(items=result.get('workflow_states_restful_list'), per_page=paginator_info.get('per_page'),
+                        page=paginator_info.get('page'), total=paginator_info.get('total'))
+            code, msg, = 0, ''
+        else:
+            code, data, msg = -1, {}, result
+        return api_response(code, msg, data)
+
+    def post(self, request, *args, **kwargs):
+        """
+        新增状态
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        json_str = request.body.decode('utf-8')
+        if not json_str:
+            return api_response(-1, 'post参数为空', {})
+        request_data_dict = json.loads(json_str)
+        app_name = request.META.get('HTTP_APPNAME')
+        username = request.META.get('HTTP_USERNAME')
+        name = request_data_dict.get('name', '')
+        chiefs = request_data_dict.get('chiefs', [])
+        chiefs = ','.join(map(str, chiefs))
+        module = request_data_dict.get('module', '')
+        is_hidden = request_data_dict.get('is_hidden', 0)
+        order_id = int(request_data_dict.get('order_id', 0))
+        type_id = int(request_data_dict.get('type_id', 0))
+        remember_last_man_enable = int(
+            request_data_dict.get('remember_last_man_enable', 1))
+        enable_retreat = int(request_data_dict.get('enable_retreat', 1))
+        participant_type_id = int(
+            request_data_dict.get('participant_type_id', 1))
+
+        participant = request_data_dict.get('participant', [])
+        participant = ','.join(map(str, participant))
+        distribute_type_id = int(
+            request_data_dict.get('distribute_type_id', 1))
+        description = request_data_dict.get('description', '')
+        deadline = int(request_data_dict.get('deadline', 1))
+        label = {}
+        for field in ['has_report', 'has_excel']:
+            if field in request_data_dict:
+                label[field] = request_data_dict[field]
+        label = json.dumps(label)
+
+        flag, result = workflow_state_service_ins.edit_workflow_state(
+            0, name, is_hidden, order_id, type_id, remember_last_man_enable, participant_type_id,
+            participant, distribute_type_id, label, username, enable_retreat, chiefs,
+            app_name, module, description, deadline)
+        if flag is False:
+            code, msg, data = -1, result, {}
+        else:
+            code, msg, data = 0, '', {
+                'state_id': result.get('workflow_state_id')}
+        return api_response(code, msg, data)
+
+
+class WorkflowStateDetailView(LoonBaseView):
+    patch_schema = Schema({
+        'name': And(str, lambda n: n != '', error='name is needed'),
+        'module': And(str, lambda n: n != '', error='module is needed'),
+        'chiefs': And(list, lambda n: n != '', error='chiefs is needed'),
+        'participant': And(list, lambda n: n != '', error='participant is needed'),
+        'deadline': And(int, lambda n: n != '', error='deadline is needed'),
+        str: object
+    })
+
     def get(self, request, *args, **kwargs):
         """
         获取状态详情
@@ -434,109 +521,6 @@ class StateView(LoonBaseView):
             code, data, msg = -1, {}, state_info_dict
         return api_response(code, msg, data)
 
-
-class WorkflowStateView(LoonBaseView):
-    post_schema = Schema({
-        'name': And(str, lambda n: n != '', error='name is needed'),
-        'order_id': And(int, error='order_id is needed'),
-        'type_id': And(int, error='type_id is needed'),
-        'participant_type_id': int,
-        'distribute_type_id': And(int, lambda n: n != 0, error='distribute_type_id is needed'),
-        Optional('remember_last_man_enable'): int,
-        Optional('state_field_str'): str,
-        Optional('label'): str,
-        str: object
-    })
-
-    def get(self, request, *args, **kwargs):
-        """
-        获取工作流拥有的state列表信息
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        workflow_id = kwargs.get('workflow_id')
-        request_data = request.GET
-        # username = request_data.get('username', '')  # 后续会根据username做必要的权限控制
-        username = request.META.get('HTTP_USERNAME')
-        search_value = request_data.get('search_value', '')
-        per_page = int(request_data.get('per_page', 10)
-                       ) if request_data.get('per_page', 10) else 10
-        page = int(request_data.get('page', 1)
-                   ) if request_data.get('page', 1) else 1
-        # if not username:
-        #     return api_response(-1, '请提供username', '')
-        flag, result = workflow_state_service_ins.get_workflow_states_serialize(workflow_id, per_page, page,
-                                                                                search_value)
-
-        if flag is not False:
-            paginator_info = result.get('paginator_info')
-            data = dict(value=result.get('workflow_states_restful_list'), per_page=paginator_info.get('per_page'),
-                        page=paginator_info.get('page'), total=paginator_info.get('total'))
-            code, msg, = 0, ''
-        else:
-            code, data, msg = -1, {}, result
-        return api_response(code, msg, data)
-
-    @manage_permission_check('workflow_admin')
-    def post(self, request, *args, **kwargs):
-        """
-        新增状态
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        json_str = request.body.decode('utf-8')
-        if not json_str:
-            return api_response(-1, 'post参数为空', {})
-        request_data_dict = json.loads(json_str)
-        workflow_data = {}
-        app_name = request.META.get('HTTP_APPNAME')
-        username = request.META.get('HTTP_USERNAME')
-        name = request_data_dict.get('name', '')
-        is_hidden = request_data_dict.get('is_hidden', 0)
-        order_id = int(request_data_dict.get('order_id', 0))
-        type_id = int(request_data_dict.get('type_id', 0))
-        remember_last_man_enable = int(
-            request_data_dict.get('remember_last_man_enable', 0))
-        enable_retreat = int(request_data_dict.get('enable_retreat', 0))
-        participant_type_id = int(
-            request_data_dict.get('participant_type_id', 0))
-
-        participant = request_data_dict.get('participant', '')
-        distribute_type_id = int(
-            request_data_dict.get('distribute_type_id', 1))
-        state_field_str = request_data_dict.get('state_field_str', '')
-        label = request_data_dict.get('label', '')
-        workflow_id = kwargs.get('workflow_id')
-
-        flag, result = workflow_state_service_ins.add_workflow_state(
-            workflow_id, name, is_hidden, order_id, type_id, remember_last_man_enable, participant_type_id,
-            participant, distribute_type_id, state_field_str, label, username, enable_retreat)
-        if flag is False:
-            code, msg, data = -1, result, {}
-        else:
-            code, msg, data = 0, '', {
-                'state_id': result.get('workflow_state_id')}
-        return api_response(code, msg, data)
-
-
-class WorkflowStateDetailView(LoonBaseView):
-    patch_schema = Schema({
-        'name': And(str, lambda n: n != '', error='name is needed'),
-        'order_id': And(int, error='order_id is needed'),
-        'type_id': And(int, error='type_id is needed'),
-        'participant_type_id': int,
-        'distribute_type_id': And(int, lambda n: n != 0, error='distribute_type_id is needed'),
-        Optional('remember_last_man_enable'): int,
-        Optional('state_field_str'): str,
-        Optional('label'): str,
-        str: object
-    })
-
-    @manage_permission_check('workflow_admin')
     def patch(self, request, *args, **kwargs):
         """
         编辑状态
@@ -549,37 +533,44 @@ class WorkflowStateDetailView(LoonBaseView):
         if not json_str:
             return api_response(-1, 'post参数为空', {})
         request_data_dict = json.loads(json_str)
-        workflow_data = {}
         app_name = request.META.get('HTTP_APPNAME')
         username = request.META.get('HTTP_USERNAME')
         name = request_data_dict.get('name', '')
+        chiefs = request_data_dict.get('chiefs', [])
+        chiefs = ','.join(map(str, chiefs))
+        module = request_data_dict.get('module', '')
         is_hidden = request_data_dict.get('is_hidden', 0)
         order_id = int(request_data_dict.get('order_id', 0))
         type_id = int(request_data_dict.get('type_id', 0))
         remember_last_man_enable = int(
-            request_data_dict.get('remember_last_man_enable', 0))
-        enable_retreat = int(request_data_dict.get('enable_retreat', 0))
+            request_data_dict.get('remember_last_man_enable', 1))
+        enable_retreat = int(request_data_dict.get('enable_retreat', 1))
         participant_type_id = int(
-            request_data_dict.get('participant_type_id', 0))
+            request_data_dict.get('participant_type_id', 1))
 
-        participant = request_data_dict.get('participant', '')
+        participant = request_data_dict.get('participant', [])
+        participant = ','.join(map(str, participant))
         distribute_type_id = int(
             request_data_dict.get('distribute_type_id', 1))
-        state_field_str = request_data_dict.get('state_field_str', '')
-        label = request_data_dict.get('label', '')
-        workflow_id = kwargs.get('workflow_id')
+        description = request_data_dict.get('description', '')
+        deadline = int(request_data_dict.get('deadline', 1))
+        label = {}
+        for field in ['has_report', 'has_excel']:
+            if field in request_data_dict:
+                label[field] = request_data_dict[field]
+        label = json.dumps(label)
         state_id = kwargs.get('state_id')
 
         flag, result = workflow_state_service_ins.edit_workflow_state(
-            state_id, workflow_id, name, is_hidden, order_id, type_id, remember_last_man_enable, participant_type_id,
-            participant, distribute_type_id, state_field_str, label, enable_retreat)
+            state_id, name, is_hidden, order_id, type_id, remember_last_man_enable, participant_type_id,
+            participant, distribute_type_id, label, username, enable_retreat, chiefs,
+            app_name, module, description, deadline)
         if flag is False:
             code, msg, data = -1, result, {}
         else:
             code, msg, data = 0, '', {}
         return api_response(code, msg, data)
 
-    @manage_permission_check('workflow_admin')
     def delete(self, request, *args, **kwargs):
         """
         删除状态
@@ -861,10 +852,11 @@ class WorkflowCustomNoticeDetailView(LoonBaseView):
 
 class WorkflowCustomFieldView(LoonBaseView):
     post_schema = Schema({
-        'field_key': And(str, lambda n: n != '', error='field_key is needed'),
         'field_name': And(str, lambda n: n != '', error='field_name is needed'),
         'field_type_id': And(int, lambda n: n != 0, error='field_type_id is needed and should be a number'),
         'order_id': And(int, error='order_id is needed and should be a number'),
+        'is_necessary': And(bool, error='is_necessary is needed and should be a bool'),
+        'is_show': And(bool, error='is_show is needed and should be a bool'),
         Optional('description'): str,
         Optional('label'): str,
         Optional('field_template'): str,
@@ -906,7 +898,6 @@ class WorkflowCustomFieldView(LoonBaseView):
             code, data, msg = -1, {}, ''
         return api_response(code, msg, data)
 
-    @manage_permission_check('workflow_admin')
     def post(self, request, *args, **kwargs):
         """
         新增工作流自定义字段
@@ -917,17 +908,17 @@ class WorkflowCustomFieldView(LoonBaseView):
         """
         app_name = request.META.get('HTTP_APPNAME')
         username = request.META.get('HTTP_USERNAME')
-        workflow_id = kwargs.get('workflow_id')
+        state_id = kwargs.get('state_id')
         # 判断是否有工作流的权限
-        app_permission, msg = account_base_service_ins.app_workflow_permission_check(
-            app_name, workflow_id)
+        app_permission, msg = account_base_service_ins.app_state_permission_check(
+            app_name, state_id)
         if not app_permission:
             return api_response(-1, 'APP:{} have no permission to get this workflow info'.format(app_name), '')
         json_str = request.body.decode('utf-8')
         if not json_str:
             return api_response(-1, 'post参数为空', {})
         request_data_dict = json.loads(json_str)
-        field_key = request_data_dict.get('field_key', '')
+        field_key = str(uuid.uuid1())
         field_name = request_data_dict.get('field_name', '')
         field_type_id = request_data_dict.get('field_type_id', '')
         order_id = int(request_data_dict.get('order_id', 0))
@@ -938,11 +929,13 @@ class WorkflowCustomFieldView(LoonBaseView):
         boolean_field_display = request_data_dict.get(
             'boolean_field_display', '')
         field_choice = request_data_dict.get('field_choice', '')
-        flag, result = workflow_custom_field_service_ins.add_record(workflow_id, field_type_id, field_key, field_name,
-                                                                    order_id,
-                                                                    default_value, description, field_template,
-                                                                    boolean_field_display, field_choice, label,
-                                                                    username)
+        is_necessary = request_data_dict.get('is_necessary', False)
+        is_show = request_data_dict.get('is_show', False)
+        flag, result = workflow_custom_field_service_ins.edit_record(0, state_id, field_type_id, field_key, field_name,
+                                                                     order_id,
+                                                                     default_value, description, field_template,
+                                                                     boolean_field_display, field_choice, label,
+                                                                     username, is_necessary, is_show)
 
         if flag is not False:
             data = dict(
@@ -955,10 +948,11 @@ class WorkflowCustomFieldView(LoonBaseView):
 
 class WorkflowCustomFieldDetailView(LoonBaseView):
     patch_schema = Schema({
-        'field_key': And(str, lambda n: n != '', error='field_key is needed'),
         'field_name': And(str, lambda n: n != '', error='field_name is needed'),
         'field_type_id': And(int, lambda n: n != 0, error='field_type_id is needed and should be a number'),
         'order_id': And(int, error='order_id is needed and should be a number'),
+        'is_necessary': And(bool, error='is_necessary is needed and should be a bool'),
+        'is_show': And(bool, error='is_show is needed and should be a bool'),
         Optional('description'): str,
         Optional('label'): str,
         Optional('field_template'): str,
@@ -967,7 +961,6 @@ class WorkflowCustomFieldDetailView(LoonBaseView):
         Optional('field_choice'): str,
     })
 
-    @manage_permission_check('workflow_admin')
     def patch(self, request, *args, **kwargs):
         """
         更新自定义字段
@@ -979,17 +972,16 @@ class WorkflowCustomFieldDetailView(LoonBaseView):
         custom_field_id = kwargs.get('custom_field_id')
         app_name = request.META.get('HTTP_APPNAME')
         username = request.META.get('HTTP_USERNAME')
-        workflow_id = kwargs.get('workflow_id')
+        state_id = kwargs.get('state_id')
         # 判断是否有工作流的权限
-        app_permission, msg = account_base_service_ins.app_workflow_permission_check(
-            app_name, workflow_id)
+        app_permission, msg = account_base_service_ins.app_state_permission_check(
+            app_name, state_id)
         if not app_permission:
             return api_response(-1, 'APP:{} have no permission to get this workflow info'.format(app_name), '')
         json_str = request.body.decode('utf-8')
         if not json_str:
             return api_response(-1, 'post参数为空', {})
         request_data_dict = json.loads(json_str)
-        field_key = request_data_dict.get('field_key', '')
         field_name = request_data_dict.get('field_name', '')
         field_type_id = request_data_dict.get('field_type_id', '')
         order_id = int(request_data_dict.get('order_id', 0))
@@ -1000,10 +992,14 @@ class WorkflowCustomFieldDetailView(LoonBaseView):
         boolean_field_display = request_data_dict.get(
             'boolean_field_display', '')
         field_choice = request_data_dict.get('field_choice', '')
-        result, msg = workflow_custom_field_service_ins.edit_record(custom_field_id, workflow_id, field_type_id,
-                                                                    field_key, field_name, order_id,
+        is_necessary = request_data_dict.get('is_necessary', False)
+        is_show = request_data_dict.get('is_show', False)
+        result, msg = workflow_custom_field_service_ins.edit_record(custom_field_id, state_id, field_type_id, field_key,
+                                                                    field_name,
+                                                                    order_id,
                                                                     default_value, description, field_template,
-                                                                    boolean_field_display, field_choice, label)
+                                                                    boolean_field_display, field_choice, label,
+                                                                    username, is_necessary, is_show)
 
         if result is not False:
             code, msg, data = 0, '', {}
@@ -1011,7 +1007,6 @@ class WorkflowCustomFieldDetailView(LoonBaseView):
             code, data = -1, ''
         return api_response(code, msg, data)
 
-    @manage_permission_check('workflow_admin')
     def delete(self, request, *args, **kwargs):
         """删除记录"""
         app_name = request.META.get('HTTP_APPNAME')

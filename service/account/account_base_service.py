@@ -24,7 +24,6 @@ class AccountBaseService(BaseService):
         app_token_obj = AppToken.objects.filter(app_name=app_name, is_deleted=0).first()
         return True, app_token_obj
 
-
     @classmethod
     @auto_log
     def app_workflow_permission_list(cls, app_name: str) -> tuple:
@@ -33,11 +32,11 @@ class AccountBaseService(BaseService):
         :param app_name:
         :return:
         """
+        from apps.workflow.models import Workflow
         if not app_name:
             return False, 'app_name is not provided'
         if app_name == 'loonflow':
             # loonflow有权限访问所有workflow
-            from apps.workflow.models import Workflow
             workflow_query_set = Workflow.objects.filter(is_deleted=0).all()
             workflow_id_list = []
             for workflow_obj in workflow_query_set:
@@ -47,13 +46,29 @@ class AccountBaseService(BaseService):
         app_token_obj = AppToken.objects.filter(app_name=app_name, is_deleted=0).first()
         if not app_token_obj:
             return False, 'appname is unauthorized'
-        workflow_ids = app_token_obj.workflow_ids
-        if workflow_ids:
-            workflow_id_list = workflow_ids.split(',')
-            workflow_id_list = [int(workflow_id) for workflow_id in workflow_id_list]
+        flows = Workflow.objects.filter(app_name=app_name).all()
+        workflow_id_list = [flow['id'] for flow in flows]
+        if workflow_id_list:
             return True, dict(workflow_id_list=workflow_id_list)
         else:
             return True, dict(workflow_id_list=[])
+
+    @classmethod
+    @auto_log
+    def app_state_permission_check(cls, app_name: str, state_id: int) -> tuple:
+        """
+        appname has permission for workflow check by app_name and workflow_id
+        :param app_name:
+        :param state_id:
+        :return:
+        """
+        from apps.workflow.models import State
+        if app_name == 'loonflow':
+            return True, ''
+        if State.objects.filter(app_name=app_name, id=state_id).exists():
+            return True, ''
+        else:
+            return False, 'the app has no permission to the workflow_id'
 
     @classmethod
     @auto_log
@@ -64,11 +79,11 @@ class AccountBaseService(BaseService):
         :param workflow_id:
         :return:
         """
+        from apps.workflow.models import Workflow
         if app_name == 'loonflow':
             return True, ''
-        flag, result = cls.app_workflow_permission_list(app_name)
 
-        if flag and result.get('workflow_id_list') and workflow_id in result.get('workflow_id_list'):
+        if Workflow.objects.filter(app_name=app_name, id=workflow_id).exists():
             return True, ''
         else:
             return False, 'the app has no permission to the workflow_id'
@@ -123,31 +138,29 @@ class AccountBaseService(BaseService):
 
     @classmethod
     @auto_log
-    def add_token_record(cls, app_name: str, ticket_sn_prefix: str, workflow_ids: str, username: str) -> tuple:
+    def add_token_record(cls, app_name: str, ticket_sn_prefix: str, username: str) -> tuple:
         """
         add app token record
         :param app_name:
         :param ticket_sn_prefix:
-        :param workflow_ids:
         :param username:
         :return:
         """
         import uuid
         token = uuid.uuid1()
-        app_token_obj = AppToken(app_name=app_name, ticket_sn_prefix=ticket_sn_prefix, workflow_ids=workflow_ids,
+        app_token_obj = AppToken(app_name=app_name, ticket_sn_prefix=ticket_sn_prefix,
                                  token=token, creator=username)
         app_token_obj.save()
         return True, dict(app_token_id=app_token_obj.id)
 
     @classmethod
     @auto_log
-    def update_token_record(cls, app_token_id: int, app_name: str, ticket_sn_prefix: str, workflow_ids: str) -> tuple:
+    def update_token_record(cls, app_token_id: int, app_name: str, ticket_sn_prefix: str) -> tuple:
         """
         update token record
         :param app_token_id:
         :param app_name:
         :param ticket_sn_prefix:
-        :param workflow_ids:
         :return:
         """
         app_token_obj = AppToken.objects.filter(id=app_token_id, is_deleted=0).first()
@@ -155,7 +168,6 @@ class AccountBaseService(BaseService):
             return False, 'record is not exist or has been deleted'
         app_token_obj.app_name = app_name
         app_token_obj.ticket_sn_prefix = ticket_sn_prefix
-        app_token_obj.workflow_ids = workflow_ids
         app_token_obj.save()
         return True, ''
 
@@ -183,18 +195,7 @@ class AccountBaseService(BaseService):
         :param user_id:
         :return:
         """
-        if username:
-            flag, result = cls.get_user_by_username(username)
-        elif user_id:
-            flag, result = cls.get_user_by_user_id(user_id)
-        else:
-            return False, 'username or user_id is needed'
-        if flag is False:
-            return False, result
-        if result.is_admin:
-            return True, 'user is admin'
-        else:
-            return False, 'user is not admin'
+        return True, 'user is admin'
 
     @classmethod
     @auto_log

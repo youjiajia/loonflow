@@ -32,22 +32,23 @@ class WorkflowStateService(BaseService):
 
     @staticmethod
     @auto_log
-    def get_workflow_states_serialize(workflow_id: int, per_page: int = 10, page: int = 1,
-                                      query_value: str = '') -> tuple:
+    def get_app_states_serialize(app_name: int, per_page: int = 10, page: int = 1,
+                                 query_value: str = '', module: str = '') -> tuple:
         """
         获取序列化工作流状态记录
         get restful workflow's state by params
-        :param workflow_id:
+        :param module:
+        :param app_name:
         :param per_page:
         :param page:
         :param query_value:
         :return:
         """
-        if not workflow_id:
-            return False, 'except workflow_id but not provided'
-        query_params = Q(workflow_id=workflow_id, is_deleted=False)
+        query_params = Q(app_name=app_name, is_deleted=False)
         if query_value:
             query_params &= Q(name__contains=query_value)
+        if module:
+            query_params &= Q(module=module)
 
         workflow_states = State.objects.filter(query_params).order_by('order_id')
 
@@ -63,12 +64,11 @@ class WorkflowStateService(BaseService):
         workflow_states_object_list = workflow_states_result_paginator.object_list
         workflow_states_restful_list = []
         for workflow_states_object in workflow_states_object_list:
-            flag, participant_info = WorkflowStateService.get_format_participant_info(
-                workflow_states_object.participant_type_id, workflow_states_object.participant)
             result_dict = workflow_states_object.get_dict()
-            result_dict['state_field_str'] = json.loads(result_dict['state_field_str'])
-            result_dict['label'] = json.loads(result_dict['label'])
-            result_dict['participant_info'] = participant_info
+            result_dict.update(json.loads(result_dict['label']))
+            del result_dict['label']
+            result_dict['participant'] = result_dict['participant'].split(',') if result_dict['participant'] else []
+            result_dict['chiefs'] = result_dict['chiefs'].split(',') if result_dict['chiefs'] else []
 
             workflow_states_restful_list.append(result_dict)
         return True, dict(workflow_states_restful_list=workflow_states_restful_list,
@@ -100,14 +100,12 @@ class WorkflowStateService(BaseService):
             workflow_state = State.objects.filter(id=state_id, is_deleted=False).first()
             if not workflow_state:
                 return False, '工单状态不存在或已被删除'
-            state_info_dict = dict(
-                id=workflow_state.id, name=workflow_state.name, workflow_id=workflow_state.workflow_id,
-                distribute_type_id=workflow_state.distribute_type_id,
-                is_hidden=workflow_state.is_hidden, order_id=workflow_state.order_id, type_id=workflow_state.type_id,
-                participant_type_id=workflow_state.participant_type_id, participant=workflow_state.participant,
-                state_field=json.loads(workflow_state.state_field_str), label=json.loads(workflow_state.label),
-                creator=workflow_state.creator, gmt_created=str(workflow_state.gmt_created)[:19])
-            return True, state_info_dict
+            result_dict = workflow_state.get_dict()
+            result_dict.update(json.loads(result_dict['label']))
+            del result_dict['label']
+            result_dict['participant'] = result_dict['participant'].split(',') if result_dict['participant'] else []
+            result_dict['chiefs'] = result_dict['chiefs'].split(',') if result_dict['chiefs'] else []
+            return True, result_dict
 
     @classmethod
     @auto_log
@@ -213,133 +211,21 @@ class WorkflowStateService(BaseService):
 
     @classmethod
     @auto_log
-    def get_format_participant_info(cls, participant_type_id: int, participant: str) -> tuple:
-        """
-        获取格式化的参与人信息
-        get format participant info
-        :param participant_type_id:
-        :param participant:
-        :return:
-        """
-        participant_name = participant
-        participant_type_name = ''
-        participant_alias = ''
-        if participant_type_id == constant_service_ins.PARTICIPANT_TYPE_PERSONAL:
-            participant_type_name = '个人'
-            flag, participant_user_obj = account_base_service_ins.get_user_by_username(participant)
-            if not flag:
-                participant_alias = participant
-            else:
-                participant_alias = participant_user_obj.alias
-        elif participant_type_id == constant_service_ins.PARTICIPANT_TYPE_MULTI:
-            participant_type_name = '多人'
-            # 依次获取人员信息
-            participant_name_list = participant_name.split(',')
-            participant_alias_list = []
-            for participant_name0 in participant_name_list:
-                flag, participant_user_obj = account_base_service_ins.get_user_by_username(participant_name0)
-                if not flag:
-                    participant_alias_list.append(participant_name0)
-                else:
-                    participant_alias_list.append(participant_user_obj.alias)
-            participant_alias = ','.join(participant_alias_list)
-        elif participant_type_id == constant_service_ins.PARTICIPANT_TYPE_DEPT:
-            participant_type_name = '部门'
-            # 支持多部门
-            flag, dept_queryset = account_base_service_ins.get_dept_by_ids(participant)
-            dept_info_dict = {}
-            for dept0 in dept_queryset:
-                dept_info_dict[str(dept0.id)] = dept0.name
-            participant_split_id_str_list = participant.split(',')
-
-            participant_dept_info_list = []
-            for participant_split_id_str in participant_split_id_str_list:
-                if dept_info_dict.get(participant_split_id_str):
-                    participant_dept_info_list.append(dept_info_dict.get(participant_split_id_str))
-                else:
-                    participant_dept_info_list.append('未知')
-
-            participant_alias = ','.join(participant_dept_info_list)
-
-        elif participant_type_id == constant_service_ins.PARTICIPANT_TYPE_ROLE:
-            participant_type_name = '角色'
-            flag, role_obj = account_base_service_ins.get_role_by_id(int(participant))
-            if flag is False or (not role_obj):
-                participant_alias = '未知'
-            else:
-                participant_alias = role_obj.name
-        elif participant_type_id == constant_service_ins.PARTICIPANT_TYPE_VARIABLE:
-            participant_type_name = '变量'
-            # 支持多变量的展示
-            participant_name_list = participant_name.split(',')
-            participant_name_alias_list = []
-            for participant_name0 in participant_name_list:
-                if participant_name0 == 'creator':
-                    participant_name_alias_list.append('工单创建人')
-                elif participant_name0 == 'creator_tl':
-                    participant_name_alias_list.append('工单创建人tl')
-                else:
-                    participant_name_alias_list.append('未知')
-            participant_alias = ','.join(participant_name_alias_list)
-
-        elif participant_type_id == constant_service_ins.PARTICIPANT_TYPE_ROBOT:
-            if participant:
-                flag, result = workflow_run_script_service_ins.get_run_script_by_id(int(participant))
-                if flag:
-                    participant_alias = result.get('script_obj').name
-        elif participant_type_id == constant_service_ins.PARTICIPANT_TYPE_HOOK:
-            participant_type_name = 'hook'
-            participant_alias = participant_name
-
-        return True, dict(participant=participant, participant_name=participant_name,
-                          participant_type_id=participant_type_id, participant_type_name=participant_type_name,
-                          participant_alias=participant_alias)
-
-    @classmethod
-    @auto_log
-    def add_workflow_state(cls, workflow_id: int, name: str, is_hidden: int, order_id: int,
-                           type_id: int, remember_last_man_enable: int, participant_type_id: int, participant: str,
-                           distribute_type_id: int, state_field_str: str, label: str, creator: str,
-                           enable_retreat: int) -> tuple:
+    def edit_workflow_state(cls, state_id: int, name: str, is_hidden: int, order_id: int,
+                            type_id: int, remember_last_man_enable: int, participant_type_id: int, participant: str,
+                            distribute_type_id: int, label: str, editor: str,
+                            enable_retreat: int, chiefs: str, app_name: str, module: str, description: str,
+                            deadline: str) -> tuple:
         """
         新增工作流状态
         add workflow state
-        :param workflow_id:
-        :param name:
-        :param is_hidden:
-        :param order_id:
-        :param type_id:
-        :param remember_last_man_enable:
-        :param participant_type_id:
-        :param participant:
-        :param distribute_type_id:
-        :param state_field_str:
-        :param label:
-        :param creator:
-        :param enable_retreat:
-        :return:
-        """
-        workflow_state_obj = State(
-            workflow_id=workflow_id, name=name, is_hidden=is_hidden, order_id=order_id,
-            type_id=type_id, remember_last_man_enable=remember_last_man_enable, participant_type_id=participant_type_id,
-            participant=participant, distribute_type_id=distribute_type_id, state_field_str=state_field_str,
-            label=label, creator=creator, enable_retreat=enable_retreat)
-        workflow_state_obj.save()
-        return True, dict(workflow_state_id=workflow_state_obj.id)
-
-    @classmethod
-    @auto_log
-    def edit_workflow_state(cls, state_id: int, workflow_id: int, name: str, is_hidden: int,
-                            order_id: int, type_id: int, remember_last_man_enable: int, participant_type_id: int,
-                            participant: str, distribute_type_id: int, state_field_str: str, label: str,
-                            enable_retreat: int) -> tuple:
-        """
-        新增工作流状态
-        edit workflow state
         :param state_id:
-        :param workflow_id:
+        :param description:
+        :param module:
+        :param app_name:
+        :param chiefs:
+        :param deadline:
         :param name:
-        :param sub_workflow_id:
         :param is_hidden:
         :param order_id:
         :param type_id:
@@ -347,19 +233,27 @@ class WorkflowStateService(BaseService):
         :param participant_type_id:
         :param participant:
         :param distribute_type_id:
-        :param state_field_str:
         :param label:
+        :param editor:
         :param enable_retreat:
         :return:
         """
-        state_obj = State.objects.filter(id=state_id, is_deleted=0)
-        if state_obj:
-            state_obj.update(workflow_id=workflow_id, name=name,
-                             is_hidden=is_hidden, order_id=order_id, type_id=type_id,
-                             remember_last_man_enable=remember_last_man_enable, participant_type_id=participant_type_id,
-                             participant=participant, distribute_type_id=distribute_type_id,
-                             state_field_str=state_field_str, label=label, enable_retreat=enable_retreat)
-        return True, ''
+        data = dict(
+            name=name, is_hidden=is_hidden, order_id=order_id, chiefs=chiefs, app_name=app_name, module=module,
+            type_id=type_id, remember_last_man_enable=remember_last_man_enable, participant_type_id=participant_type_id,
+            participant=participant, distribute_type_id=distribute_type_id,
+            label=label, enable_retreat=enable_retreat, deadline=deadline, description=description)
+        if not state_id:
+            data['creator'] = editor
+            workflow_state_obj = State(**data)
+            workflow_state_obj.save()
+            state_id = workflow_state_obj.id
+        else:
+            data['modifier'] = editor
+            state_obj = State.objects.filter(id=state_id, is_deleted=0)
+            if state_obj:
+                state_obj.update(**data)
+        return True, dict(workflow_state_id=state_id)
 
     @classmethod
     @auto_log

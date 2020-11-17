@@ -18,7 +18,6 @@ class LoonAppTokenView(LoonBaseView):
     post_schema = Schema({
         'app_name': And(str, lambda n: n != '', error='app_name is needed'),
         Optional('ticket_sn_prefix'): str,
-        'workflow_ids': And(str, lambda n: n != '', error='workflow_ids is needed'),
     })
 
     @manage_permission_check('admin')
@@ -60,10 +59,9 @@ class LoonAppTokenView(LoonBaseView):
         request_data_dict = json.loads(json_str)
         app_name = request_data_dict.get('app_name', '')
         ticket_sn_prefix = request_data_dict.get('ticket_sn_prefix', '')
-        workflow_ids = request_data_dict.get('workflow_ids', '')
         username = request.user.username
         flag, result = account_base_service_ins.add_token_record(
-            app_name, ticket_sn_prefix, workflow_ids, username)
+            app_name, ticket_sn_prefix, username)
         if flag is False:
             code, data = -1, {}
         else:
@@ -77,7 +75,6 @@ class LoonAppTokenDetailView(LoonBaseView):
     patch_schema = Schema({
         'app_name': And(str, lambda n: n != '', error='app_name is needed'),
         Optional('ticket_sn_prefix'): str,
-        'workflow_ids': And(str, lambda n: n != '', error='workflow_ids is needed'),
     })
 
     @manage_permission_check('admin')
@@ -94,9 +91,8 @@ class LoonAppTokenDetailView(LoonBaseView):
         request_data_dict = json.loads(json_str)
         app_name = request_data_dict.get('app_name', '')
         ticket_sn_prefix = request_data_dict.get('ticket_sn_prefix', '')
-        workflow_ids = request_data_dict.get('workflow_ids', '')
         flag, msg = account_base_service_ins.update_token_record(
-            app_token_id, app_name, ticket_sn_prefix, workflow_ids)
+            app_token_id, app_name, ticket_sn_prefix)
         if flag is False:
             code, data = -1, {}
         else:

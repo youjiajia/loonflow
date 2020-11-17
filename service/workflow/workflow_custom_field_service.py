@@ -63,7 +63,7 @@ class WorkflowCustomFieldService(BaseService):
         query_params = Q(is_deleted=False, workflow_id=workflow_id)
         if query_value:
             query_params &= Q(field_key__contains=query_value) | Q(description__contains=query_value) \
-                | Q(field_name__contains=query_value)
+                            | Q(field_name__contains=query_value)
 
         workflow_custom_field_queryset = CustomField.objects.filter(query_params).order_by('id')
         paginator = Paginator(workflow_custom_field_queryset, per_page)
@@ -89,44 +89,19 @@ class WorkflowCustomFieldService(BaseService):
 
     @classmethod
     @auto_log
-    def add_record(cls, workflow_id: int, field_type_id: int, field_key: str, field_name: str, order_id: int,
-                   default_value: str, description: str, field_template: str,
-                   boolean_field_display: str, field_choice: str, label: str, creator: str):
+    def edit_record(cls, custom_field_id: int, field_type_id: int, field_name: str,
+                    order_id: int,
+                    default_value: str, description: str, field_template: str,
+                    boolean_field_display: str, field_choice: str, label: str, editor: str, is_necessary: bool,
+                    is_show: bool, field_key: str = '', state_id: int = 0):
         """
         新增自定义字段记录
         add workflow custom field record
-        :param workflow_id:
-        :param field_type_id:
-        :param field_key:
-        :param field_name:
-        :param order_id:
-        :param default_value:
-        :param description:
-        :param field_template:
-        :param boolean_field_display:
-        :param field_choice:
-        :param label:
-        :param creator:
-        :return:
-        """
-        custom_field_obj = CustomField(workflow_id=workflow_id, field_type_id=field_type_id, field_key=field_key,
-                                       field_name=field_name, order_id=order_id, default_value=default_value,
-                                       description=description, field_template=field_template,
-                                       boolean_field_display=boolean_field_display,
-                                       field_choice=field_choice, label=label, creator=creator)
-        custom_field_obj.save()
-        return True, dict(custom_field_id=custom_field_obj.id)
-
-    @classmethod
-    @auto_log
-    def edit_record(cls, custom_field_id: int, workflow_id: int, field_type_id: int, field_key: str, field_name: str,
-                    order_id: int, default_value: str, description: str, field_template: str,
-                    boolean_field_display: str, field_choice: str, label: str) -> tuple:
-        """
-        修改自定义字段记录
-        update custom field record
+        :param editor:
         :param custom_field_id:
-        :param workflow_id:
+        :param is_show:
+        :param is_necessary:
+        :param state_id:
         :param field_type_id:
         :param field_key:
         :param field_name:
@@ -137,17 +112,27 @@ class WorkflowCustomFieldService(BaseService):
         :param boolean_field_display:
         :param field_choice:
         :param label:
-        :param creator:
         :return:
         """
-        custom_filed_queryset = CustomField.objects.filter(id=custom_field_id, is_deleted=0)
-        if custom_filed_queryset:
-            custom_filed_queryset.update(workflow_id=workflow_id, field_type_id=field_type_id, field_key=field_key,
-                                         field_name=field_name, order_id=order_id, default_value=default_value,
-                                         description=description, field_template=field_template,
-                                         boolean_field_display=boolean_field_display,
-                                         field_choice=field_choice, label=label)
-        return True, ''
+        data = dict(field_type_id=field_type_id,
+                    field_name=field_name, order_id=order_id, default_value=default_value,
+                    description=description, field_template=field_template,
+                    boolean_field_display=boolean_field_display,
+                    field_choice=field_choice, label=label,
+                    is_necessary=is_necessary, is_show=is_show)
+        if not state_id:
+            data['state_id'] = state_id
+            data['field_key'] = field_key
+            data['creator'] = editor
+            custom_field_obj = CustomField(**data)
+            custom_field_obj.save()
+            custom_field_id = custom_field_obj.id
+        else:
+            data['modifier'] = editor
+            custom_filed_queryset = CustomField.objects.filter(id=custom_field_id, is_deleted=0)
+            if custom_filed_queryset:
+                custom_filed_queryset.update(**data)
+        return True, dict(custom_field_id=custom_field_id)
 
     @classmethod
     @auto_log
