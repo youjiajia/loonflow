@@ -16,9 +16,9 @@ urlpatterns = [
     path('/<int:workflow_id>/transitions', WorkflowTransitionView.as_view()),
     path('/<int:workflow_id>/transitions/<int:transition_id>',
          WorkflowTransitionDetailView.as_view()),
-    path('/<int:workflow_id>/custom_fields',
+    path('/<int:state_id>/custom_fields',
          WorkflowCustomFieldView.as_view()),
-    path('/<int:workflow_id>/custom_fields/<int:custom_field_id>',
+    path('/<int:state_id>/custom_fields/<int:custom_field_id>',
          WorkflowCustomFieldDetailView.as_view()),
 
     path('/run_scripts', WorkflowRunScriptView.as_view()),

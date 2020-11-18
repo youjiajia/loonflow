@@ -50,17 +50,17 @@ class WorkflowCustomFieldService(BaseService):
 
     @classmethod
     @auto_log
-    def get_workflow_custom_field_list(cls, workflow_id: int, query_value: str, page: int, per_page: int):
+    def get_workflow_custom_field_list(cls, state_id: int, query_value: str, page: int, per_page: int):
         """
         获取工作流自定义字段的列表
         get workflow custom field restful info list
-        :param workflow_id:
+        :param state_id:
         :param query_value:
         :param page:
         :param per_page:
         :return:
         """
-        query_params = Q(is_deleted=False, workflow_id=workflow_id)
+        query_params = Q(is_deleted=False, state_id=state_id)
         if query_value:
             query_params &= Q(field_key__contains=query_value) | Q(description__contains=query_value) \
                             | Q(field_name__contains=query_value)
@@ -79,9 +79,13 @@ class WorkflowCustomFieldService(BaseService):
         workflow_custom_field_result_restful_list = []
         for workflow_custom_field_result_object in workflow_custom_field_result_list:
             custom_field_dict = workflow_custom_field_result_object.get_dict()
-            custom_field_dict['boolean_field_display'] = json.loads(custom_field_dict['boolean_field_display'])
-            custom_field_dict['field_choice'] = json.loads(custom_field_dict['field_choice'])
+            if custom_field_dict['boolean_field_display']:
+                custom_field_dict['boolean_field_display'] = json.loads(custom_field_dict['boolean_field_display'])
+            if custom_field_dict['field_choice']:
+                custom_field_dict['field_choice'] = json.loads(custom_field_dict['field_choice'])
             custom_field_dict['label'] = json.loads(custom_field_dict['label']) if custom_field_dict['label'] else {}
+            custom_field_dict['state_id'] = custom_field_dict['state'].id
+            del custom_field_dict['state']
 
             workflow_custom_field_result_restful_list.append(custom_field_dict)
         return True, dict(workflow_custom_field_result_restful_list=workflow_custom_field_result_restful_list,
@@ -120,7 +124,7 @@ class WorkflowCustomFieldService(BaseService):
                     boolean_field_display=boolean_field_display,
                     field_choice=field_choice, label=label,
                     is_necessary=is_necessary, is_show=is_show)
-        if not state_id:
+        if not custom_field_id:
             data['state_id'] = state_id
             data['field_key'] = field_key
             data['creator'] = editor
@@ -146,6 +150,25 @@ class WorkflowCustomFieldService(BaseService):
         if custom_field_queryset:
             custom_field_queryset.update(is_deleted=True)
         return True, ''
+
+    @classmethod
+    @auto_log
+    def get_restful_info_by_id(cls, custom_field_id: int) -> tuple:
+        if not custom_field_id:
+            return False, 'except state_id but not provided'
+        else:
+            custom_filed_queryset = CustomField.objects.filter(id=custom_field_id, is_deleted=0).first()
+            if not custom_filed_queryset:
+                return False, '工单状态不存在或已被删除'
+            custom_field_dict = custom_filed_queryset.get_dict()
+            if custom_field_dict['boolean_field_display']:
+                custom_field_dict['boolean_field_display'] = json.loads(custom_field_dict['boolean_field_display'])
+            if custom_field_dict['field_choice']:
+                custom_field_dict['field_choice'] = json.loads(custom_field_dict['field_choice'])
+            custom_field_dict['label'] = json.loads(custom_field_dict['label']) if custom_field_dict['label'] else {}
+            custom_field_dict['state_id'] = custom_field_dict['state'].id
+            del custom_field_dict['state']
+            return True, custom_field_dict
 
 
 workflow_custom_field_service_ins = WorkflowCustomFieldService()

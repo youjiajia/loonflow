@@ -420,7 +420,7 @@ class WorkflowStateView(LoonBaseView):
         """
         request_data = request.GET
         app_name = request.META.get('HTTP_APPNAME')
-        search_value = request_data.get('search_value', '')
+        search_value = request_data.get('name', '')
         per_page = int(request_data.get('rowsPerPage', 10)
                        ) if request_data.get('rowsPerPage', 10) else 10
         page = int(request_data.get('page', 1)
@@ -874,23 +874,17 @@ class WorkflowCustomFieldView(LoonBaseView):
         :return:
         """
         request_data = request.GET
-        # username = request_data.get('username', '')  # 后续会根据username做必要的权限控制
-        username = request.META.get('HTTP_USERNAME')
-        if not username:
-            username = request.user.username
-        search_value = request_data.get('search_value', '')
-        per_page = int(request_data.get('per_page', 10)
-                       ) if request_data.get('per_page', 10) else 10
+        search_value = request_data.get('field_name', '')
+        per_page = int(request_data.get('rowsPerPage', 10)
+                       ) if request_data.get('rowsPerPage', 10) else 10
         page = int(request_data.get('page', 1)
                    ) if request_data.get('page', 1) else 1
-        if not username:
-            return api_response(-1, '请提供username', '')
-        flag, result = workflow_custom_field_service_ins.get_workflow_custom_field_list(kwargs.get('workflow_id'),
+        flag, result = workflow_custom_field_service_ins.get_workflow_custom_field_list(kwargs.get('state_id'),
                                                                                         search_value, page, per_page)
 
         if flag is not False:
             paginator_info = result.get('paginator_info')
-            data = dict(value=result.get('workflow_custom_field_result_restful_list'),
+            data = dict(items=result.get('workflow_custom_field_result_restful_list'),
                         per_page=paginator_info.get('per_page'), page=paginator_info.get('page'),
                         total=paginator_info.get('total'))
             code, msg, = 0, ''
@@ -931,11 +925,12 @@ class WorkflowCustomFieldView(LoonBaseView):
         field_choice = request_data_dict.get('field_choice', '')
         is_necessary = request_data_dict.get('is_necessary', False)
         is_show = request_data_dict.get('is_show', False)
-        flag, result = workflow_custom_field_service_ins.edit_record(0, state_id, field_type_id, field_key, field_name,
+        flag, result = workflow_custom_field_service_ins.edit_record(0, field_type_id, field_name,
                                                                      order_id,
                                                                      default_value, description, field_template,
                                                                      boolean_field_display, field_choice, label,
-                                                                     username, is_necessary, is_show)
+                                                                     username, is_necessary, is_show, field_key,
+                                                                     state_id)
 
         if flag is not False:
             data = dict(
@@ -994,7 +989,7 @@ class WorkflowCustomFieldDetailView(LoonBaseView):
         field_choice = request_data_dict.get('field_choice', '')
         is_necessary = request_data_dict.get('is_necessary', False)
         is_show = request_data_dict.get('is_show', False)
-        result, msg = workflow_custom_field_service_ins.edit_record(custom_field_id, state_id, field_type_id, field_key,
+        result, msg = workflow_custom_field_service_ins.edit_record(custom_field_id, field_type_id,
                                                                     field_name,
                                                                     order_id,
                                                                     default_value, description, field_template,
@@ -1011,11 +1006,11 @@ class WorkflowCustomFieldDetailView(LoonBaseView):
         """删除记录"""
         app_name = request.META.get('HTTP_APPNAME')
         username = request.META.get('HTTP_USERNAME')
-        workflow_id = kwargs.get('workflow_id')
+        state_id = kwargs.get('state_id')
         custom_field_id = kwargs.get('custom_field_id')
         # 判断是否有工作流的权限
-        app_permission, msg = account_base_service_ins.app_workflow_permission_check(
-            app_name, workflow_id)
+        app_permission, msg = account_base_service_ins.app_state_permission_check(
+            app_name, state_id)
         if not app_permission:
             return api_response(-1, 'APP:{} have no permission to get this workflow info'.format(app_name), '')
         flag, result = workflow_custom_field_service_ins.delete_record(
@@ -1025,4 +1020,24 @@ class WorkflowCustomFieldDetailView(LoonBaseView):
             code, msg, = 0, ''
         else:
             code, data = -1, ''
+        return api_response(code, msg, data)
+
+    def get(self, request, *args, **kwargs):
+        """
+        获取字段详情
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        custom_field_id = kwargs.get('custom_field_id')
+        username = request.META.get('HTTP_USERNAME')
+        if not username:
+            return api_response(-1, '请提供username', '')
+
+        flag, field_info_dict = workflow_custom_field_service_ins.get_restful_info_by_id(custom_field_id)
+        if flag is not False:
+            code, data, msg = 0, field_info_dict, ''
+        else:
+            code, data, msg = -1, {}, field_info_dict
         return api_response(code, msg, data)
